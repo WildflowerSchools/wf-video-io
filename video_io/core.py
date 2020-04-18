@@ -123,6 +123,9 @@ def fetch_video_metadata(
         'timestamp',
         {'source': [
             {'... on Assignment': [
+                {'environment': [
+                    'environment_id'
+                ]},
                 'assignment_id',
                 {'assigned': [
                     {'... on Device': [
@@ -155,6 +158,7 @@ def fetch_video_metadata(
         video_metadata.append({
             'data_id': datum.get('data_id'),
             'timestamp': minimal_honeycomb.from_honeycomb_datetime(datum.get('timestamp')),
+            'environment_id': (source.get('environment') if source.get('environment') is not None else {}).get('environment_id'),
             'assignment_id': source.get('assignment_id'),
             'device_id': (source.get('assigned') if source.get('assigned') is not None else {}).get('device_id'),
             'bucket': file.get('bucketName'),

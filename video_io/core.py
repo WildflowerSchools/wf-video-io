@@ -1,4 +1,6 @@
 import minimal_honeycomb
+import boto3
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -398,3 +400,49 @@ def search_datapoints(
     )
     logger.info('Fetched {} datapoints'.format(len(result)))
     return result
+
+def download_video_files(
+    video_metadata,
+    base_video_download_directory='./video',
+    filename_extension='mp4'
+):
+    for video in video_metadata:
+        download_path = video_download_path(
+            base_video_download_directory=base_video_download_directory,
+            environment_id=video.get('environment_id'),
+            assignment_id=video.get('assignment_id'),
+            timestamp=video.get('timestamp'),
+            filename_extension=filename_extension
+        )
+        if not os.path.exists(download_path):
+            load_file_from_s3(video.get('key'), video.get('bucket'), download_path)
+        else:
+            logging.info('File {} already exists'.format(download_path))
+
+def video_download_path(
+    base_video_download_directory,
+    environment_id,
+    assignment_id,
+    timestamp,
+    filename_extension='mp4'
+):
+    return os.path.join(
+        base_video_download_directory,
+        environment_id,
+        assignment_id,
+        '{}.{}'.format(
+            timestamp.strftime("%Y/%m/%d/%H-%M-%S"),
+            filename_extension
+        )
+    )
+
+def load_file_from_s3(key, bucket_name, download_path):
+    s3 = boto3.resource('s3')
+    logging.info('Loading {} from {} into {}'.format(
+        key,
+        bucket_name,
+        download_path
+    ))
+    download_directory = os.path.dirname(download_path)
+    os.makedirs(download_directory, exist_ok=True)
+    s3.meta.client.download_file(bucket_name, key, download_path)

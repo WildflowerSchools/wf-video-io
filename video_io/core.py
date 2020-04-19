@@ -10,6 +10,54 @@ DEFAULT_CAMERA_DEVICE_TYPES = [
     'PIZEROWITHCAMERA'
 ]
 
+def fetch_videos(
+    start=None,
+    end=None,
+    camera_assignment_ids=None,
+    environment_id=None,
+    environment_name=None,
+    camera_device_types=DEFAULT_CAMERA_DEVICE_TYPES,
+    camera_device_ids=None,
+    camera_part_numbers=None,
+    camera_names=None,
+    camera_serial_numbers=None,
+    chunk_size=100,
+    minimal_honeycomb_client=None,
+    uri=None,
+    token_uri=None,
+    audience=None,
+    client_id=None,
+    client_secret=None,
+    base_video_download_directory='./video',
+    filename_extension='mp4'
+):
+    logging.info('Fetching metadata for videos that match specified parameters')
+    video_metadata = fetch_video_metadata(
+        start=start,
+        end=end,
+        camera_assignment_ids=camera_assignment_ids,
+        environment_id=environment_id,
+        environment_name=environment_name,
+        camera_device_types=camera_device_types,
+        camera_device_ids=camera_device_ids,
+        camera_part_numbers=camera_part_numbers,
+        camera_names=camera_names,
+        camera_serial_numbers=camera_serial_numbers,
+        chunk_size=chunk_size,
+        minimal_honeycomb_client=minimal_honeycomb_client,
+        uri=uri,
+        token_uri=token_uri,
+        audience=audience,
+        client_id=client_id,
+        client_secret=client_secret
+    )
+    logging.info('Downloading video files')
+    download_video_files(
+        video_metadata=video_metadata,
+        base_video_download_directory=base_video_download_directory,
+        filename_extension=filename_extension
+    )
+
 def fetch_video_metadata(
     start=None,
     end=None,

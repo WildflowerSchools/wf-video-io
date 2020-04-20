@@ -1,4 +1,6 @@
 import minimal_honeycomb
+import cv_utils
+import cv2 as cv
 import boto3
 import os
 import math
@@ -32,7 +34,7 @@ def fetch_videos(
     client_id=None,
     client_secret=None,
     local_video_directory='./videos',
-    filename_extension='mp4'
+    video_filename_extension='mp4'
 ):
     logging.info('Fetching metadata for videos that match specified parameters')
     video_metadata = fetch_video_metadata(
@@ -59,7 +61,7 @@ def fetch_videos(
     video_metadata_with_local_paths = download_video_files(
         video_metadata=video_metadata,
         local_video_directory=local_video_directory,
-        filename_extension=filename_extension
+        video_filename_extension=video_filename_extension
     )
     return video_metadata_with_local_paths
 
@@ -526,34 +528,67 @@ def search_datapoints(
     logger.info('Fetched {} datapoints'.format(len(result)))
     return result
 
+def download_image_files(
+    image_metadata,
+    local_image_directory='./images',
+    image_filename_extension='png',
+    local_video_directory='./videos',
+    video_filename_extension='mp4'
+):
+    image_metadata_with_local_video_paths = download_video_files(
+        image_metadata,
+        local_video_directory=local_video_directory,
+        video_filename_extension=video_filename_extension
+    )
+    image_metadata_with_local_paths = list()
+    for image in image_metadata_with_local_video_paths:
+        download_path = image_local_path(
+            local_image_directory=local_image_directory,
+            environment_id=image.get('environment_id'),
+            assignment_id=image.get('assignment_id'),
+            video_timestamp=image.get('video_timestamp'),
+            frame_number=image.get('frame_number'),
+            image_filename_extension=image_filename_extension
+        )
+        if not os.path.exists(download_path):
+            video_input = cv_utils.VideoInput(image.get('video_local_path'))
+            image_data = video_input.get_frame_by_frame_number(image.get('frame_number'))
+            os.makedirs(os.path.dirname(download_path), exist_ok=True)
+            cv.imwrite(download_path, image_data)
+        else:
+            logging.info('File {} already exists'.format(download_path))
+        image['image_local_path'] = download_path
+        image_metadata_with_local_paths.append(image)
+    return image_metadata_with_local_paths
+
 def download_video_files(
     video_metadata,
     local_video_directory='./videos',
-    filename_extension='mp4'
+    video_filename_extension='mp4'
 ):
     video_metadata_with_local_paths = list()
     for video in video_metadata:
-        download_path = local_video_path(
+        download_path = video_local_path(
             local_video_directory=local_video_directory,
             environment_id=video.get('environment_id'),
             assignment_id=video.get('assignment_id'),
             video_timestamp=video.get('video_timestamp'),
-            filename_extension=filename_extension
+            video_filename_extension=video_filename_extension
         )
         if not os.path.exists(download_path):
             load_file_from_s3(video.get('key'), video.get('bucket'), download_path)
         else:
             logging.info('File {} already exists'.format(download_path))
-        video['local_path'] = download_path
+        video['video_local_path'] = download_path
         video_metadata_with_local_paths.append(video)
     return video_metadata_with_local_paths
 
-def local_video_path(
+def video_local_path(
     local_video_directory,
     environment_id,
     assignment_id,
     video_timestamp,
-    filename_extension='mp4'
+    video_filename_extension='mp4'
 ):
     return os.path.join(
         local_video_directory,
@@ -561,7 +596,26 @@ def local_video_path(
         assignment_id,
         '{}.{}'.format(
             video_timestamp.strftime("%Y/%m/%d/%H-%M-%S"),
-            filename_extension
+            video_filename_extension
+        )
+    )
+
+def image_local_path(
+    local_image_directory,
+    environment_id,
+    assignment_id,
+    video_timestamp,
+    frame_number,
+    image_filename_extension='png'
+):
+    return os.path.join(
+        local_image_directory,
+        environment_id,
+        assignment_id,
+        '{}_{:03}.{}'.format(
+            video_timestamp.strftime("%Y/%m/%d/%H-%M-%S"),
+            frame_number,
+            image_filename_extension
         )
     )
 

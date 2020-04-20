@@ -1,6 +1,8 @@
 import minimal_honeycomb
 import boto3
 import os
+import math
+import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,6 +15,7 @@ DEFAULT_CAMERA_DEVICE_TYPES = [
 def fetch_videos(
     start=None,
     end=None,
+    video_timestamps=None,
     camera_assignment_ids=None,
     environment_id=None,
     environment_name=None,
@@ -35,6 +38,7 @@ def fetch_videos(
     video_metadata = fetch_video_metadata(
         start=start,
         end=end,
+        video_timestamps=video_timestamps,
         camera_assignment_ids=camera_assignment_ids,
         environment_id=environment_id,
         environment_name=environment_name,
@@ -58,9 +62,8 @@ def fetch_videos(
         filename_extension=filename_extension
     )
 
-def fetch_video_metadata(
-    start=None,
-    end=None,
+def fetch_image_metadata(
+    image_timestamps,
     camera_assignment_ids=None,
     environment_id=None,
     environment_name=None,
@@ -77,6 +80,65 @@ def fetch_video_metadata(
     client_id=None,
     client_secret=None
 ):
+    image_metadata_by_video_timestamp = dict()
+    for image_timestamp in image_timestamps:
+        image_timestamp = image_timestamp.astimezone(datetime.timezone.utc)
+        timestamp_floor = image_timestamp.replace(second=0, microsecond=0)
+        video_timestamp = timestamp_floor + math.floor((image_timestamp - timestamp_floor)/datetime.timedelta(seconds=10))*datetime.timedelta(seconds=10)
+        frame_number = round((image_timestamp - video_timestamp)/datetime.timedelta(milliseconds=100))
+        if video_timestamp not in image_metadata_by_video_timestamp.keys():
+            image_metadata_by_video_timestamp[video_timestamp] = list()
+        image_metadata_by_video_timestamp[video_timestamp].append({
+            'image_timestamp': image_timestamp,
+            'frame_number': frame_number
+        })
+    video_timestamps = list(image_metadata_by_video_timestamp.keys())
+    video_metadata = fetch_video_metadata(
+        video_timestamps=video_timestamps,
+        camera_assignment_ids=camera_assignment_ids,
+        environment_id=environment_id,
+        environment_name=environment_name,
+        camera_device_types=camera_device_types,
+        camera_device_ids=camera_device_ids,
+        camera_part_numbers=camera_part_numbers,
+        camera_names=camera_names,
+        camera_serial_numbers=camera_serial_numbers,
+        chunk_size=chunk_size,
+        minimal_honeycomb_client=minimal_honeycomb_client,
+        uri=uri,
+        token_uri=token_uri,
+        audience=audience,
+        client_id=client_id,
+        client_secret=client_secret
+    )
+    image_metadata = list()
+    for video in video_metadata:
+        for image in image_metadata_by_video_timestamp[video['video_timestamp']]:
+            image_metadata.append({**video, **image})
+    return image_metadata
+
+def fetch_video_metadata(
+    start=None,
+    end=None,
+    video_timestamps=None,
+    camera_assignment_ids=None,
+    environment_id=None,
+    environment_name=None,
+    camera_device_types=DEFAULT_CAMERA_DEVICE_TYPES,
+    camera_device_ids=None,
+    camera_part_numbers=None,
+    camera_names=None,
+    camera_serial_numbers=None,
+    chunk_size=100,
+    minimal_honeycomb_client=None,
+    uri=None,
+    token_uri=None,
+    audience=None,
+    client_id=None,
+    client_secret=None
+):
+    if (start is not None or end is not None) and video_timestamps is not None:
+        raise ValueError('Cannot specify start/end and list of video timestamps')
     if (
         camera_assignment_ids is not None and
         (
@@ -97,6 +159,14 @@ def fetch_video_metadata(
         raise ValueError('Cannot specify camera assignment IDs and camera device properties')
     if environment_id is not None and environment_name is not None:
         raise ValueError('Cannot specify environment ID and environment name')
+    if video_timestamps is not None:
+        start = min(video_timestamps)
+        end = max(video_timestamps)
+        video_timestamps_honeycomb = [minimal_honeycomb.to_honeycomb_datetime(video_timestamp) for video_timestamp in video_timestamps]
+    if start is not None:
+        start_honeycomb = minimal_honeycomb.to_honeycomb_datetime(start)
+    if end is not None:
+        end_honeycomb = minimal_honeycomb.to_honeycomb_datetime(end)
     if environment_name is not None:
         environment_id = fetch_environment_id(
             environment_name=environment_name,
@@ -142,13 +212,19 @@ def fetch_video_metadata(
         query_list.append({
             'field': 'timestamp',
             'operator': 'GTE',
-            'value': minimal_honeycomb.to_honeycomb_datetime(start)
+            'value': start_honeycomb
         })
     if end is not None:
         query_list.append({
             'field': 'timestamp',
             'operator': 'LTE',
-            'value': minimal_honeycomb.to_honeycomb_datetime(end)
+            'value': end_honeycomb
+        })
+    if video_timestamps is not None:
+        query_list.append({
+            'field': 'timestamp',
+            'operator': 'IN',
+            'values': video_timestamps_honeycomb
         })
     if camera_assignment_ids is not None:
         query_list.append({
@@ -207,7 +283,7 @@ def fetch_video_metadata(
         file = datum.get('file') if datum.get('file') is not None else {}
         video_metadata.append({
             'data_id': datum.get('data_id'),
-            'timestamp': minimal_honeycomb.from_honeycomb_datetime(datum.get('timestamp')),
+            'video_timestamp': minimal_honeycomb.from_honeycomb_datetime(datum.get('timestamp')),
             'environment_id': (source.get('environment') if source.get('environment') is not None else {}).get('environment_id'),
             'assignment_id': source.get('assignment_id'),
             'device_id': (source.get('assigned') if source.get('assigned') is not None else {}).get('device_id'),
@@ -459,7 +535,7 @@ def download_video_files(
             base_video_download_directory=base_video_download_directory,
             environment_id=video.get('environment_id'),
             assignment_id=video.get('assignment_id'),
-            timestamp=video.get('timestamp'),
+            video_timestamp=video.get('video_timestamp'),
             filename_extension=filename_extension
         )
         if not os.path.exists(download_path):
@@ -471,7 +547,7 @@ def video_download_path(
     base_video_download_directory,
     environment_id,
     assignment_id,
-    timestamp,
+    video_timestamp,
     filename_extension='mp4'
 ):
     return os.path.join(
@@ -479,7 +555,7 @@ def video_download_path(
         environment_id,
         assignment_id,
         '{}.{}'.format(
-            timestamp.strftime("%Y/%m/%d/%H-%M-%S"),
+            video_timestamp.strftime("%Y/%m/%d/%H-%M-%S"),
             filename_extension
         )
     )

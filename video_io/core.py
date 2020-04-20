@@ -56,11 +56,12 @@ def fetch_videos(
         client_secret=client_secret
     )
     logging.info('Downloading video files')
-    download_video_files(
+    video_metadata_with_local_paths = download_video_files(
         video_metadata=video_metadata,
         local_video_directory=local_video_directory,
         filename_extension=filename_extension
     )
+    return video_metadata_with_local_paths
 
 def fetch_image_metadata(
     image_timestamps,
@@ -530,6 +531,7 @@ def download_video_files(
     local_video_directory='./videos',
     filename_extension='mp4'
 ):
+    video_metadata_with_local_paths = list()
     for video in video_metadata:
         download_path = local_video_path(
             local_video_directory=local_video_directory,
@@ -542,6 +544,9 @@ def download_video_files(
             load_file_from_s3(video.get('key'), video.get('bucket'), download_path)
         else:
             logging.info('File {} already exists'.format(download_path))
+        video['local_path'] = download_path
+        video_metadata_with_local_paths.append(video)
+    return video_metadata_with_local_paths
 
 def local_video_path(
     local_video_directory,

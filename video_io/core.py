@@ -31,7 +31,7 @@ def fetch_videos(
     audience=None,
     client_id=None,
     client_secret=None,
-    base_video_download_directory='./video',
+    local_video_directory='./videos',
     filename_extension='mp4'
 ):
     logging.info('Fetching metadata for videos that match specified parameters')
@@ -58,7 +58,7 @@ def fetch_videos(
     logging.info('Downloading video files')
     download_video_files(
         video_metadata=video_metadata,
-        base_video_download_directory=base_video_download_directory,
+        local_video_directory=local_video_directory,
         filename_extension=filename_extension
     )
 
@@ -527,12 +527,12 @@ def search_datapoints(
 
 def download_video_files(
     video_metadata,
-    base_video_download_directory='./video',
+    local_video_directory='./videos',
     filename_extension='mp4'
 ):
     for video in video_metadata:
-        download_path = video_download_path(
-            base_video_download_directory=base_video_download_directory,
+        download_path = local_video_path(
+            local_video_directory=local_video_directory,
             environment_id=video.get('environment_id'),
             assignment_id=video.get('assignment_id'),
             video_timestamp=video.get('video_timestamp'),
@@ -543,15 +543,15 @@ def download_video_files(
         else:
             logging.info('File {} already exists'.format(download_path))
 
-def video_download_path(
-    base_video_download_directory,
+def local_video_path(
+    local_video_directory,
     environment_id,
     assignment_id,
     video_timestamp,
     filename_extension='mp4'
 ):
     return os.path.join(
-        base_video_download_directory,
+        local_video_directory,
         environment_id,
         assignment_id,
         '{}.{}'.format(
@@ -560,7 +560,11 @@ def video_download_path(
         )
     )
 
-def load_file_from_s3(key, bucket_name, download_path):
+def load_file_from_s3(
+    key,
+    bucket_name,
+    download_path
+):
     s3 = boto3.resource('s3')
     logging.info('Loading {} from {} into {}'.format(
         key,

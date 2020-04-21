@@ -87,6 +87,37 @@ def fetch_videos(
     local_video_directory='./videos',
     video_filename_extension='mp4'
 ):
+    """
+    Downloads videos that match search parameters and returns their metadata.
+
+    This function simply combines the operations of fetch_video_metadata() and
+    download_video_files(). See documentation of those functions for details.
+
+    Args:
+        start (datetime): Earliest video start time (default is None)
+        end (datetime): Latest video start time (default is None)
+        video_timestamps (list of datetime): List of video start times (default is None)
+        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        environment_id (str): Honeycomb environment ID (default is None)
+        environment_name (str): Honeycomb environment name (default is None)
+        camera_device_types (list of str): Honeycomb device types (default is ['PI3WITHCAMERA', 'PIZEROWITHCAMERA'])
+        camera_device_ids (list of str): Honeycomb device IDs (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_names (list of str): Honeycomb device names (default is None)
+        camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
+        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
+        minimal_honeycomb_client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
+        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
+        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
+        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
+        local_video_directory (str): Base of local video tree (default is './videos')
+        video_filename_extension (str): Filename extension for video files (default is 'mp4')
+
+    Returns:
+        (list of dict): Metadata for videos with local path information appended
+    """
     logging.info('Fetching metadata for videos that match specified parameters')
     video_metadata = fetch_video_metadata(
         start=start,
@@ -134,6 +165,45 @@ def fetch_image_metadata(
     client_id=None,
     client_secret=None
 ):
+    """
+    Searches Honeycomb for videos containing images that match specified search
+    parameters and returns video/image metadata.
+
+    Image timestamps are rounded to the nearest tenth of a second to synchronize
+    with video frames. Videos containing these images must match all specified
+    search parameters (i.e., the function performs a logical AND of all of the
+    queries). If camera information is not specified, returns results for all
+    devices that have one of the specified camera device types ('PI3WITHCAMERA'
+    and 'PIZEROWITHCAMERA' by default). Redundant combinations of search terms
+    will generate an error (e.g., user cannot specify environment name and
+    environment ID, camera assignment IDs and camera device IDs, etc.)
+
+    Returned metadata is a list of dictionaries, one for each image. Each
+    dictionary contains information both about the image and the video that
+    contains the image: data_id, video_timestamp, environment_id, assignment_id,
+    device_id, bucket, key, and image_timestamp, and frame_number.
+
+    Args:
+        image_timestamps (list of datetime): List of image timestamps
+        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        environment_id (str): Honeycomb environment ID (default is None)
+        environment_name (str): Honeycomb environment name (default is None)
+        camera_device_types (list of str): Honeycomb device types (default is ['PI3WITHCAMERA', 'PIZEROWITHCAMERA'])
+        camera_device_ids (list of str): Honeycomb device IDs (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_names (list of str): Honeycomb device names (default is None)
+        camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
+        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
+        minimal_honeycomb_client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
+        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
+        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
+        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
+
+    Returns:
+        (list of dict): Metadata for images that match search parameters
+    """
     image_metadata_by_video_timestamp = dict()
     for image_timestamp in image_timestamps:
         image_timestamp = image_timestamp.astimezone(datetime.timezone.utc)
@@ -191,6 +261,45 @@ def fetch_video_metadata(
     client_id=None,
     client_secret=None
 ):
+    """
+    Searches Honeycomb for videos that match specified search parameters and
+    returns their metadata.
+
+    Videos must match all specified search parameters (i.e., the function
+    performs a logical AND of all of the queries). If camera information is not
+    specified, returns results for all devices that have one of the specified
+    camera device types ('PI3WITHCAMERA' and 'PIZEROWITHCAMERA' by default).
+    Redundant combinations of search terms will generate an error (e.g., user
+    cannot specify environment name and environment ID, camera assignment IDs
+    and camera device IDs, etc.)
+
+    Returned metadata is a list of dictionaries, one for each video. Each
+    dictionary has the following fields: data_id, video_timestamp,
+    environment_id, assignment_id, device_id, bucket, key.
+
+    Args:
+        start (datetime): Earliest video start time (default is None)
+        end (datetime): Latest video start time (default is None)
+        video_timestamps (list of datetime): List of video start times (default is None)
+        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        environment_id (str): Honeycomb environment ID (default is None)
+        environment_name (str): Honeycomb environment name (default is None)
+        camera_device_types (list of str): Honeycomb device types (default is ['PI3WITHCAMERA', 'PIZEROWITHCAMERA'])
+        camera_device_ids (list of str): Honeycomb device IDs (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_names (list of str): Honeycomb device names (default is None)
+        camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
+        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
+        minimal_honeycomb_client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
+        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
+        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
+        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
+
+    Returns:
+        (list of dict): Metadata for videos that match search parameters
+    """
     if (start is not None or end is not None) and video_timestamps is not None:
         raise ValueError('Cannot specify start/end and list of video timestamps')
     if (
@@ -586,6 +695,40 @@ def download_image_files(
     local_video_directory='./videos',
     video_filename_extension='mp4'
 ):
+    """
+    Downloads videos from S3 to local directory tree, extract images, saves
+    images to local directory tree, and returns metadata with local path
+    information added.
+
+    Images are specified as a list of dictionaries, as returned by the function
+    fetch_image_metadata(). Each dictionary is expected to contain information
+    both about the image and the video that contains the image and is assumed to
+    have the following fields: data_id, video_timestamp, environment_id,
+    assignment_id, device_id, bucket, key, and image_timestamp, and frame_number
+    (though only a subset of these are currently used).
+
+    Structure of resulting video file tree is as described in documentation for
+    download_video_files(). Structure of resulting image file tree is [base
+    directory]/[environment ID]/[camera assignment ID]/[year]/[month]/[day].
+    Filenames contain the timestamp for the start of the containing video and
+    the frame number of the image in the form [hour]-[minute]-[second]_[frame
+    number].[filename extension]. Videos and images are only downloaded if they
+    don't already exist in the local directory trees. Directories are created as
+    necessary.
+
+    Function returns the metadata with local path information appended to each
+    record (in the fields video_local_path and image_local_path).
+
+    Args:
+        image_metadata (list of dict): Metadata in the format output by fetch_image_metadata()
+        local_image_directory (str): Base of local image file tree (default is './images')
+        image_filename_extension (str): Filename extension for image files (default is 'png')
+        local_video_directory (str): Base of local video file tree (default is './videos')
+        video_filename_extension (str): Filename extension for video files (default is 'mp4')
+
+    Returns:
+        (list of dict): Metadata for images with local path information appended
+    """
     image_metadata_with_local_video_paths = download_video_files(
         image_metadata,
         local_video_directory=local_video_directory,
@@ -617,6 +760,32 @@ def download_video_files(
     local_video_directory='./videos',
     video_filename_extension='mp4'
 ):
+    """
+    Downloads videos from S3 to local directory tree and returns metadata with
+    local path information added.
+
+    Videos are specified as a list of dictionaries, as returned by the function
+    fetch_video_metadata(). Each dictionary is assumed to have the following
+    fields: data_id, video_timestamp, environment_id, assignment_id, device_id,
+    bucket, and key (though only a subset of these are currently used).
+
+    Structure of resulting tree is [base directory]/[environment ID]/[camera
+    assignment ID]/[year]/[month]/[day]. Filenames are in the form
+    [hour]-[minute]-[second].[filename extension]. Videos are only downloaded if
+    they don't already exist in the local directory tree. Directories are
+    created as necessary.
+
+    Function returns the metadata with local path information appended to each
+    record (in the field video_local_path).
+
+    Args:
+        video_metadata (list of dict): Metadata in the format output by fetch_video_metadata()
+        local_video_directory (str): Base of local video file tree (default is './videos')
+        video_filename_extension (str): Filename extension for video files (default is 'mp4')
+
+    Returns:
+        (list of dict): Metadata for videos with local path information appended
+    """
     video_metadata_with_local_paths = list()
     for video in video_metadata:
         download_path = video_local_path(

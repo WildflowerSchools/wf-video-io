@@ -36,6 +36,37 @@ def fetch_images(
     local_video_directory='./videos',
     video_filename_extension='mp4'
 ):
+    """
+    Downloads images that match search parameters and returns their metadata.
+
+    This function simply combines the operations of fetch_image_metadata() and
+    download_image_files(). See documentation of those functions for details.
+
+    Args:
+        image_timestamps (list of datetime): List of image timestamps
+        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        environment_id (str): Honeycomb environment ID (default is None)
+        environment_name (str): Honeycomb environment name (default is None)
+        camera_device_types (list of str): Honeycomb device types (default is ['PI3WITHCAMERA', 'PIZEROWITHCAMERA'])
+        camera_device_ids (list of str): Honeycomb device IDs (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_names (list of str): Honeycomb device names (default is None)
+        camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
+        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
+        minimal_honeycomb_client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
+        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
+        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
+        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
+        local_image_directory (str): Base of local image file tree (default is './images')
+        image_filename_extension (str): Filename extension for image files (default is 'png')
+        local_video_directory (str): Base of local video file tree (default is './videos')
+        video_filename_extension (str): Filename extension for video files (default is 'mp4')
+
+    Returns:
+        (list of dict): Metadata for images with local path information appended
+    """
     logging.info('Fetching metadata for images that match specified parameters')
     image_metadata = fetch_image_metadata(
         image_timestamps=image_timestamps,

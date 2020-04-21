@@ -14,6 +14,57 @@ DEFAULT_CAMERA_DEVICE_TYPES = [
     'PIZEROWITHCAMERA'
 ]
 
+def fetch_images(
+    image_timestamps,
+    camera_assignment_ids=None,
+    environment_id=None,
+    environment_name=None,
+    camera_device_types=DEFAULT_CAMERA_DEVICE_TYPES,
+    camera_device_ids=None,
+    camera_part_numbers=None,
+    camera_names=None,
+    camera_serial_numbers=None,
+    chunk_size=100,
+    minimal_honeycomb_client=None,
+    uri=None,
+    token_uri=None,
+    audience=None,
+    client_id=None,
+    client_secret=None,
+    local_image_directory='./images',
+    image_filename_extension='png',
+    local_video_directory='./videos',
+    video_filename_extension='mp4'
+):
+    logging.info('Fetching metadata for images that match specified parameters')
+    image_metadata = fetch_image_metadata(
+        image_timestamps=image_timestamps,
+        camera_assignment_ids=camera_assignment_ids,
+        environment_id=environment_id,
+        environment_name=environment_name,
+        camera_device_types=camera_device_types,
+        camera_device_ids=camera_device_ids,
+        camera_part_numbers=camera_part_numbers,
+        camera_names=camera_names,
+        camera_serial_numbers=camera_serial_numbers,
+        chunk_size=chunk_size,
+        minimal_honeycomb_client=minimal_honeycomb_client,
+        uri=uri,
+        token_uri=token_uri,
+        audience=audience,
+        client_id=client_id,
+        client_secret=client_secret
+    )
+    logging.info('Downloading image files')
+    image_metadata_with_local_paths = download_image_files(
+        image_metadata=image_metadata,
+        local_image_directory=local_image_directory,
+        image_filename_extension=image_filename_extension,
+        local_video_directory=local_video_directory,
+        video_filename_extension=video_filename_extension
+    )
+    return image_metadata_with_local_paths
+
 def fetch_videos(
     start=None,
     end=None,

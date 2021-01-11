@@ -67,7 +67,7 @@ def fetch_videos(
     Returns:
         (list of dict): Metadata for videos with local path information appended
     """
-    logging.info('Fetching metadata for videos that match specified parameters')
+    logger.info('Fetching metadata for videos that match specified parameters')
     video_metadata = fetch_video_metadata(
         start=start,
         end=end,
@@ -88,7 +88,7 @@ def fetch_videos(
         client_id=client_id,
         client_secret=client_secret
     )
-    logging.info('Downloading video files')
+    logger.info('Downloading video files')
     video_metadata_with_local_paths = download_video_files(
         video_metadata=video_metadata,
         local_video_directory=local_video_directory,
@@ -149,7 +149,7 @@ def fetch_images(
     Returns:
         (list of dict): Metadata for images with local path information appended
     """
-    logging.info('Fetching metadata for images that match specified parameters')
+    logger.info('Fetching metadata for images that match specified parameters')
     image_metadata = fetch_image_metadata(
         image_timestamps=image_timestamps,
         camera_assignment_ids=camera_assignment_ids,
@@ -168,7 +168,7 @@ def fetch_images(
         client_id=client_id,
         client_secret=client_secret
     )
-    logging.info('Downloading image files')
+    logger.info('Downloading image files')
     image_metadata_with_local_paths = download_image_files(
         image_metadata=image_metadata,
         local_image_directory=local_image_directory,
@@ -435,7 +435,7 @@ def download_video_files(
         if not os.path.exists(download_path):
             load_file_from_s3(video.get('key'), video.get('bucket'), download_path)
         else:
-            logging.info('File {} already exists'.format(download_path))
+            logger.info('File {} already exists'.format(download_path))
         video['video_local_path'] = download_path
         video_metadata_with_local_paths.append(video)
     return video_metadata_with_local_paths
@@ -463,7 +463,7 @@ def load_file_from_s3(
     download_path
 ):
     s3 = boto3.resource('s3')
-    logging.info('Loading {} from {} into {}'.format(
+    logger.info('Loading {} from {} into {}'.format(
         key,
         bucket_name,
         download_path
@@ -628,7 +628,7 @@ def download_image_files(
             os.makedirs(os.path.dirname(download_path), exist_ok=True)
             cv.imwrite(download_path, image_data)
         else:
-            logging.info('File {} already exists'.format(download_path))
+            logger.info('File {} already exists'.format(download_path))
         image['image_local_path'] = download_path
         image_metadata_with_local_paths.append(image)
     return image_metadata_with_local_paths

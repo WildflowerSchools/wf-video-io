@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CAMERA_DEVICE_TYPES = [
     'PI3WITHCAMERA',
+    'PI4WITHCAMERA',
     'PIZEROWITHCAMERA'
 ]
 

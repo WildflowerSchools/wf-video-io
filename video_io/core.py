@@ -715,7 +715,12 @@ def fetch_camera_assignment_ids_from_environment(
 ):
     if environment_id is None:
         return None
-    logger.info('Fetching camera assignments for specified environment and time span')
+    logger.info('Fetching camera assignments for environment {}, time span {} to {}, and camera device types {} '.format(
+        environment_id,
+        start.isoformat(),
+        end.isoformat(),
+        camera_device_types
+    ))
     if minimal_honeycomb_client is None:
         minimal_honeycomb_client = minimal_honeycomb.MinimalHoneycombClient(
             uri=uri,

@@ -30,7 +30,7 @@ def fetch_videos(
     camera_names=None,
     camera_serial_numbers=None,
     chunk_size=100,
-    minimal_honeycomb_client=None,
+    client=None,
     uri=None,
     token_uri=None,
     audience=None,
@@ -58,7 +58,7 @@ def fetch_videos(
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
         chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
-        minimal_honeycomb_client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
         uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
         token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
         audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
@@ -84,7 +84,7 @@ def fetch_videos(
         camera_names=camera_names,
         camera_serial_numbers=camera_serial_numbers,
         chunk_size=chunk_size,
-        minimal_honeycomb_client=minimal_honeycomb_client,
+        client=client,
         uri=uri,
         token_uri=token_uri,
         audience=audience,
@@ -110,7 +110,7 @@ def fetch_images(
     camera_names=None,
     camera_serial_numbers=None,
     chunk_size=100,
-    minimal_honeycomb_client=None,
+    client=None,
     uri=None,
     token_uri=None,
     audience=None,
@@ -138,7 +138,7 @@ def fetch_images(
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
         chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
-        minimal_honeycomb_client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
         uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
         token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
         audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
@@ -164,7 +164,7 @@ def fetch_images(
         camera_names=camera_names,
         camera_serial_numbers=camera_serial_numbers,
         chunk_size=chunk_size,
-        minimal_honeycomb_client=minimal_honeycomb_client,
+        client=client,
         uri=uri,
         token_uri=token_uri,
         audience=audience,
@@ -194,7 +194,7 @@ def fetch_video_metadata(
     camera_names=None,
     camera_serial_numbers=None,
     chunk_size=100,
-    minimal_honeycomb_client=None,
+    client=None,
     uri=None,
     token_uri=None,
     audience=None,
@@ -230,7 +230,7 @@ def fetch_video_metadata(
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
         chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
-        minimal_honeycomb_client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
         uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
         token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
         audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
@@ -282,7 +282,7 @@ def fetch_video_metadata(
         environment_id = fetch_environment_id(
             environment_name=environment_name,
             chunk_size=chunk_size,
-            minimal_honeycomb_client=minimal_honeycomb_client,
+            client=client,
             uri=uri,
             token_uri=token_uri,
             audience=audience,
@@ -295,7 +295,7 @@ def fetch_video_metadata(
         environment_id=environment_id,
         camera_device_types=camera_device_types,
         chunk_size=chunk_size,
-        minimal_honeycomb_client=minimal_honeycomb_client,
+        client=client,
         uri=uri,
         token_uri=token_uri,
         audience=audience,
@@ -310,7 +310,7 @@ def fetch_video_metadata(
         camera_names=camera_names,
         camera_serial_numbers=camera_serial_numbers,
         chunk_size=100,
-        minimal_honeycomb_client=None,
+        client=None,
         uri=uri,
         token_uri=token_uri,
         audience=audience,
@@ -380,7 +380,7 @@ def fetch_video_metadata(
         query_list=query_list,
         return_data=return_data,
         chunk_size=chunk_size,
-        minimal_honeycomb_client=None,
+        client=None,
         uri=uri,
         token_uri=token_uri,
         audience=audience,
@@ -494,7 +494,7 @@ def fetch_image_metadata(
     camera_names=None,
     camera_serial_numbers=None,
     chunk_size=100,
-    minimal_honeycomb_client=None,
+    client=None,
     uri=None,
     token_uri=None,
     audience=None,
@@ -530,7 +530,7 @@ def fetch_image_metadata(
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
         chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
-        minimal_honeycomb_client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
         uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
         token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
         audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
@@ -564,7 +564,7 @@ def fetch_image_metadata(
         camera_names=camera_names,
         camera_serial_numbers=camera_serial_numbers,
         chunk_size=chunk_size,
-        minimal_honeycomb_client=minimal_honeycomb_client,
+        client=client,
         uri=uri,
         token_uri=token_uri,
         audience=audience,
@@ -666,7 +666,7 @@ def image_local_path(
 def fetch_environment_id(
     environment_name=None,
     chunk_size=None,
-    minimal_honeycomb_client=None,
+    client=None,
     uri=None,
     token_uri=None,
     audience=None,
@@ -676,15 +676,15 @@ def fetch_environment_id(
     if environment_name is None:
         return None
     logger.info('Fetching environment ID for specified environment name')
-    if minimal_honeycomb_client is None:
-        minimal_honeycomb_client = minimal_honeycomb.MinimalHoneycombClient(
+    if client is None:
+        client = minimal_honeycomb.MinimalHoneycombClient(
             uri=uri,
             token_uri=token_uri,
             audience=audience,
             client_id=client_id,
             client_secret=client_secret
         )
-    result = minimal_honeycomb_client.bulk_query(
+    result = client.bulk_query(
         request_name='findEnvironments',
         arguments={
             'name': {
@@ -716,7 +716,7 @@ def fetch_camera_assignment_ids_from_environment(
     environment_id=None,
     camera_device_types=DEFAULT_CAMERA_DEVICE_TYPES,
     chunk_size=100,
-    minimal_honeycomb_client=None,
+    client=None,
     uri=None,
     token_uri=None,
     audience=None,
@@ -731,15 +731,15 @@ def fetch_camera_assignment_ids_from_environment(
         end.isoformat(),
         camera_device_types
     ))
-    if minimal_honeycomb_client is None:
-        minimal_honeycomb_client = minimal_honeycomb.MinimalHoneycombClient(
+    if client is None:
+        client = minimal_honeycomb.MinimalHoneycombClient(
             uri=uri,
             token_uri=token_uri,
             audience=audience,
             client_id=client_id,
             client_secret=client_secret
         )
-    result = minimal_honeycomb_client.request(
+    result = client.request(
         request_type='query',
         request_name='getEnvironment',
         arguments={
@@ -784,7 +784,7 @@ def fetch_camera_assignment_ids_from_camera_properties(
     camera_names=None,
     camera_serial_numbers=None,
     chunk_size=100,
-    minimal_honeycomb_client=None,
+    client=None,
     uri=None,
     token_uri=None,
     audience=None,
@@ -819,15 +819,15 @@ def fetch_camera_assignment_ids_from_camera_properties(
             'values': camera_serial_numbers
         })
     logger.info('Fetching camera assignments for cameras with specified properties')
-    if minimal_honeycomb_client is None:
-        minimal_honeycomb_client = minimal_honeycomb.MinimalHoneycombClient(
+    if client is None:
+        client = minimal_honeycomb.MinimalHoneycombClient(
             uri=uri,
             token_uri=token_uri,
             audience=audience,
             client_id=client_id,
             client_secret=client_secret
         )
-    result = minimal_honeycomb_client.bulk_query(
+    result = client.bulk_query(
         request_name='searchDevices',
         arguments={
             'query': {
@@ -867,7 +867,7 @@ def search_datapoints(
     query_list,
     return_data,
     chunk_size=100,
-    minimal_honeycomb_client=None,
+    client=None,
     uri=None,
     token_uri=None,
     audience=None,
@@ -875,15 +875,15 @@ def search_datapoints(
     client_secret=None
 ):
     logger.info('Searching for datapoints that match the specified parameters')
-    if minimal_honeycomb_client is None:
-        minimal_honeycomb_client = minimal_honeycomb.MinimalHoneycombClient(
+    if client is None:
+        client = minimal_honeycomb.MinimalHoneycombClient(
             uri=uri,
             token_uri=token_uri,
             audience=audience,
             client_id=client_id,
             client_secret=client_secret
         )
-    result = minimal_honeycomb_client.bulk_query(
+    result = client.bulk_query(
         request_name='searchDatapoints',
         arguments={
             'query': {

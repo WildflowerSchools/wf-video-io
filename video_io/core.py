@@ -15,6 +15,8 @@ DEFAULT_CAMERA_DEVICE_TYPES = [
     'PIZEROWITHCAMERA'
 ]
 
+VIDEO_DURATION = datetime.timedelta(seconds=10)
+
 def fetch_videos(
     start=None,
     end=None,
@@ -240,6 +242,8 @@ def fetch_video_metadata(
     """
     if (start is not None or end is not None) and video_timestamps is not None:
         raise ValueError('Cannot specify start/end and list of video timestamps')
+    if video_timestamps is None and (start is None or end is None):
+        raise ValueError('If not specifying specific timestamps, must specify both start and end times')
     if (
         camera_assignment_ids is not None and
         (
@@ -261,13 +265,19 @@ def fetch_video_metadata(
     if environment_id is not None and environment_name is not None:
         raise ValueError('Cannot specify environment ID and environment name')
     if video_timestamps is not None:
-        start = min(video_timestamps)
-        end = max(video_timestamps)
-        video_timestamps_honeycomb = [minimal_honeycomb.to_honeycomb_datetime(video_timestamp) for video_timestamp in video_timestamps]
-    if start is not None:
-        start_honeycomb = minimal_honeycomb.to_honeycomb_datetime(start)
-    if end is not None:
-        end_honeycomb = minimal_honeycomb.to_honeycomb_datetime(end)
+        video_timestamps_utc = [video_timestamp.astimezone(datetime.timezone.utc) for video_timestamp in video_timestamps]
+        video_timestamp_min_utc = min(video_timestamps)
+        video_timestamp_max_utc = max(video_timestamps)
+        start_utc = video_timestamp_min_utc
+        end_utc = video_timestamp_max_utc + VIDEO_DURATION
+        video_timestamps_utc_honeycomb = [minimal_honeycomb.to_honeycomb_datetime(video_timestamp_utc) for video_timestamp_utc in video_timestamps_utc]
+    else:
+        start_utc = start.astimezone(datetime.timezone.utc)
+        end_utc = end.astimezone(datetime.timezone.utc)
+        video_timestamp_min_utc = video_timestamp_min(start_utc)
+        video_timestamp_max_utc = video_timestamp_max(end_utc)
+        start_utc_honeycomb = minimal_honeycomb.to_honeycomb_datetime(start_utc)
+        end_utc_honeycomb = minimal_honeycomb.to_honeycomb_datetime(end_utc)
     if environment_name is not None:
         environment_id = fetch_environment_id(
             environment_name=environment_name,
@@ -280,8 +290,8 @@ def fetch_video_metadata(
             client_secret=client_secret
         )
     camera_assignment_ids_from_environment = fetch_camera_assignment_ids_from_environment(
-        start=start,
-        end=end,
+        start=start_utc,
+        end=end_utc,
         environment_id=environment_id,
         camera_device_types=camera_device_types,
         chunk_size=chunk_size,
@@ -293,8 +303,8 @@ def fetch_video_metadata(
         client_secret=client_secret
     )
     camera_assignment_ids_from_camera_properties = fetch_camera_assignment_ids_from_camera_properties(
-        start=start,
-        end=end,
+        start=start_utc,
+        end=end_utc,
         camera_device_ids=camera_device_ids,
         camera_part_numbers=camera_part_numbers,
         camera_names=camera_names,
@@ -313,19 +323,19 @@ def fetch_video_metadata(
         query_list.append({
             'field': 'timestamp',
             'operator': 'GTE',
-            'value': start_honeycomb
+            'value': video_timestamp_min_utc
         })
     if end is not None:
         query_list.append({
             'field': 'timestamp',
             'operator': 'LTE',
-            'value': end_honeycomb
+            'value':video_timestamp_max_utc
         })
     if video_timestamps is not None:
         query_list.append({
             'field': 'timestamp',
             'operator': 'IN',
-            'values': video_timestamps_honeycomb
+            'values': video_timestamps_utc_honeycomb
         })
     if camera_assignment_ids is not None:
         query_list.append({
@@ -890,3 +900,35 @@ def search_datapoints(
     )
     logger.info('Fetched {} datapoints'.format(len(result)))
     return result
+
+def video_timestamp_min(start):
+    original_tzinfo = start.tzinfo
+    if original_tzinfo:
+        start_naive = start.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+    else:
+        start_naive = start
+    timestamp_min_naive = (
+        datetime.datetime.min +
+        math.floor((start_naive - datetime.datetime.min)/VIDEO_DURATION)*VIDEO_DURATION
+    )
+    if original_tzinfo:
+        timestamp_min = timestamp_min_naive.replace(tzinfo=datetime.timezone.utc).astimezone(original_tzinfo)
+    else:
+        timestamp_min = timestamp_min_naive
+    return timestamp_min
+
+def video_timestamp_max(end):
+    original_tzinfo = end.tzinfo
+    if original_tzinfo:
+        end_naive = end.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+    else:
+        end_naive = end
+    timestamp_max_naive = (
+        datetime.datetime.min +
+        (math.ceil((end_naive - datetime.datetime.min)/VIDEO_DURATION) - 1)*VIDEO_DURATION
+    )
+    if original_tzinfo:
+        timestamp_max = timestamp_max_naive.replace(tzinfo=datetime.timezone.utc).astimezone(original_tzinfo)
+    else:
+        timestamp_max = timestamp_max_naive
+    return timestamp_max

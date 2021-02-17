@@ -46,9 +46,9 @@ def fetch_videos(
     download_video_files(). See documentation of those functions for details.
 
     Args:
-        start (datetime): Earliest video start time (default is None)
-        end (datetime): Latest video start time (default is None)
-        video_timestamps (list of datetime): List of video start times (default is None)
+        start (datetime): Start of time period to fetch (default is None)
+        end (datetime): End of time period to fetch (default is None)
+        video_timestamps (list of datetime): List of video start times to fetch (default is None)
         camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
@@ -128,7 +128,7 @@ def fetch_images(
     download_image_files(). See documentation of those functions for details.
 
     Args:
-        image_timestamps (list of datetime): List of image timestamps
+        image_timestamps (list of datetime): List of image timestamps to fetch
         camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
@@ -213,14 +213,18 @@ def fetch_video_metadata(
     cannot specify environment name and environment ID, camera assignment IDs
     and camera device IDs, etc.)
 
+    If start and end are specified, returns all videos that overlap with
+    specified start and end (e.g., if start is 10:32:56 and end is 10:33:20,
+    returns videos starting at 10:32:50, 10:33:00 and 10:33:10).
+
     Returned metadata is a list of dictionaries, one for each video. Each
     dictionary has the following fields: data_id, video_timestamp,
     environment_id, assignment_id, device_id, bucket, key.
 
     Args:
-        start (datetime): Earliest video start time (default is None)
-        end (datetime): Latest video start time (default is None)
-        video_timestamps (list of datetime): List of video start times (default is None)
+        start (datetime): Start of time period to fetch (default is None)
+        end (datetime): End of time period to fetch (default is None)
+        video_timestamps (list of datetime): List of video start times to fetch (default is None)
         camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
@@ -520,7 +524,7 @@ def fetch_image_metadata(
     device_id, bucket, key, and image_timestamp, and frame_number.
 
     Args:
-        image_timestamps (list of datetime): List of image timestamps
+        image_timestamps (list of datetime): List of image timestamps to fetch
         camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)

@@ -3,4 +3,4 @@
 Tools for accessing Wildflower video data
 
 ## Task list
-* TBD
+* Add ability to request concatenation of videos

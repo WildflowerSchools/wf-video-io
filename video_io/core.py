@@ -1,4 +1,4 @@
-import minimal_honeycomb
+import honeycomb_io
 import cv_utils
 import cv2 as cv
 import boto3
@@ -9,12 +9,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CAMERA_DEVICE_TYPES = [
-    'PI3WITHCAMERA',
-    'PI4WITHCAMERA',
-    'PIZEROWITHCAMERA'
-]
-
 VIDEO_DURATION = datetime.timedelta(seconds=10)
 
 def fetch_videos(
@@ -24,7 +18,7 @@ def fetch_videos(
     camera_assignment_ids=None,
     environment_id=None,
     environment_name=None,
-    camera_device_types=DEFAULT_CAMERA_DEVICE_TYPES,
+    camera_device_types=None,
     camera_device_ids=None,
     camera_part_numbers=None,
     camera_names=None,
@@ -52,7 +46,7 @@ def fetch_videos(
         camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
-        camera_device_types (list of str): Honeycomb device types (default is ['PI3WITHCAMERA', 'PIZEROWITHCAMERA'])
+        camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
         camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
         camera_names (list of str): Honeycomb device names (default is None)
@@ -104,7 +98,7 @@ def fetch_images(
     camera_assignment_ids=None,
     environment_id=None,
     environment_name=None,
-    camera_device_types=DEFAULT_CAMERA_DEVICE_TYPES,
+    camera_device_types=None,
     camera_device_ids=None,
     camera_part_numbers=None,
     camera_names=None,
@@ -132,7 +126,7 @@ def fetch_images(
         camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
-        camera_device_types (list of str): Honeycomb device types (default is ['PI3WITHCAMERA', 'PIZEROWITHCAMERA'])
+        camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
         camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
         camera_names (list of str): Honeycomb device names (default is None)
@@ -188,7 +182,7 @@ def fetch_video_metadata(
     camera_assignment_ids=None,
     environment_id=None,
     environment_name=None,
-    camera_device_types=DEFAULT_CAMERA_DEVICE_TYPES,
+    camera_device_types=None,
     camera_device_ids=None,
     camera_part_numbers=None,
     camera_names=None,
@@ -228,7 +222,7 @@ def fetch_video_metadata(
         camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
-        camera_device_types (list of str): Honeycomb device types (default is ['PI3WITHCAMERA', 'PIZEROWITHCAMERA'])
+        camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
         camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
         camera_names (list of str): Honeycomb device names (default is None)
@@ -274,16 +268,16 @@ def fetch_video_metadata(
         video_timestamp_max_utc = max(video_timestamps)
         start_utc = video_timestamp_min_utc
         end_utc = video_timestamp_max_utc + VIDEO_DURATION
-        video_timestamps_utc_honeycomb = [minimal_honeycomb.to_honeycomb_datetime(video_timestamp_utc) for video_timestamp_utc in video_timestamps_utc]
+        video_timestamps_utc_honeycomb = [honeycomb_io.to_honeycomb_datetime(video_timestamp_utc) for video_timestamp_utc in video_timestamps_utc]
     else:
         start_utc = start.astimezone(datetime.timezone.utc)
         end_utc = end.astimezone(datetime.timezone.utc)
         video_timestamp_min_utc = video_timestamp_min(start_utc)
         video_timestamp_max_utc = video_timestamp_max(end_utc)
-        start_utc_honeycomb = minimal_honeycomb.to_honeycomb_datetime(start_utc)
-        end_utc_honeycomb = minimal_honeycomb.to_honeycomb_datetime(end_utc)
+        start_utc_honeycomb = honeycomb_io.to_honeycomb_datetime(start_utc)
+        end_utc_honeycomb = honeycomb_io.to_honeycomb_datetime(end_utc)
     if environment_name is not None:
-        environment_id = fetch_environment_id(
+        environment_id = honeycomb_io.fetch_environment_id(
             environment_name=environment_name,
             chunk_size=chunk_size,
             client=client,
@@ -293,12 +287,11 @@ def fetch_video_metadata(
             client_id=client_id,
             client_secret=client_secret
         )
-    camera_assignment_ids_from_environment = fetch_camera_assignment_ids_from_environment(
+    camera_assignment_ids_from_environment = honeycomb_io.fetch_camera_assignment_ids_from_environment(
         start=start_utc,
         end=end_utc,
         environment_id=environment_id,
         camera_device_types=camera_device_types,
-        chunk_size=chunk_size,
         client=client,
         uri=uri,
         token_uri=token_uri,
@@ -306,7 +299,7 @@ def fetch_video_metadata(
         client_id=client_id,
         client_secret=client_secret
     )
-    camera_assignment_ids_from_camera_properties = fetch_camera_assignment_ids_from_camera_properties(
+    camera_assignment_ids_from_camera_properties = honeycomb_io.fetch_camera_assignment_ids_from_camera_properties(
         start=start_utc,
         end=end_utc,
         camera_device_ids=camera_device_ids,
@@ -380,7 +373,7 @@ def fetch_video_metadata(
             'key'
         ]}
     ]
-    result = search_datapoints(
+    result = honeycomb_io.search_datapoints(
         query_list=query_list,
         return_data=return_data,
         chunk_size=chunk_size,
@@ -398,7 +391,7 @@ def fetch_video_metadata(
         file = datum.get('file') if datum.get('file') is not None else {}
         video_metadata.append({
             'data_id': datum.get('data_id'),
-            'video_timestamp': minimal_honeycomb.from_honeycomb_datetime(datum.get('timestamp')),
+            'video_timestamp': honeycomb_io.from_honeycomb_datetime(datum.get('timestamp')),
             'environment_id': (source.get('environment') if source.get('environment') is not None else {}).get('environment_id'),
             'assignment_id': source.get('assignment_id'),
             'device_id': (source.get('assigned') if source.get('assigned') is not None else {}).get('device_id'),
@@ -492,7 +485,7 @@ def fetch_image_metadata(
     camera_assignment_ids=None,
     environment_id=None,
     environment_name=None,
-    camera_device_types=DEFAULT_CAMERA_DEVICE_TYPES,
+    camera_device_types=None,
     camera_device_ids=None,
     camera_part_numbers=None,
     camera_names=None,
@@ -528,7 +521,7 @@ def fetch_image_metadata(
         camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
-        camera_device_types (list of str): Honeycomb device types (default is ['PI3WITHCAMERA', 'PIZEROWITHCAMERA'])
+        camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
         camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
         camera_names (list of str): Honeycomb device names (default is None)
@@ -666,244 +659,6 @@ def image_local_path(
             image_filename_extension
         )
     )
-
-def fetch_environment_id(
-    environment_name=None,
-    chunk_size=None,
-    client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None
-):
-    if environment_name is None:
-        return None
-    logger.info('Fetching environment ID for specified environment name')
-    if client is None:
-        client = minimal_honeycomb.MinimalHoneycombClient(
-            uri=uri,
-            token_uri=token_uri,
-            audience=audience,
-            client_id=client_id,
-            client_secret=client_secret
-        )
-    result = client.bulk_query(
-        request_name='findEnvironments',
-        arguments={
-            'name': {
-                'type': 'String',
-                'value': environment_name
-            }
-        },
-        return_data=[
-            'environment_id'
-        ],
-        id_field_name='environment_id',
-        chunk_size=chunk_size
-    )
-    if len(result) == 0:
-        raise ValueError('No environments match environment name {}'.format(
-            environment_name
-        ))
-    if len(result) > 1:
-        raise ValueError('Multiple environments match environment name {}'.format(
-            environment_name
-        ))
-    environment_id = result[0].get('environment_id')
-    logger.info('Found environment ID for specified environment name')
-    return environment_id
-
-def fetch_camera_assignment_ids_from_environment(
-    start=None,
-    end=None,
-    environment_id=None,
-    camera_device_types=DEFAULT_CAMERA_DEVICE_TYPES,
-    chunk_size=100,
-    client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None
-):
-    if environment_id is None:
-        return None
-    logger.info('Fetching camera assignments for environment {}, time span {} to {}, and camera device types {} '.format(
-        environment_id,
-        start.isoformat(),
-        end.isoformat(),
-        camera_device_types
-    ))
-    if client is None:
-        client = minimal_honeycomb.MinimalHoneycombClient(
-            uri=uri,
-            token_uri=token_uri,
-            audience=audience,
-            client_id=client_id,
-            client_secret=client_secret
-        )
-    result = client.request(
-        request_type='query',
-        request_name='getEnvironment',
-        arguments={
-            'environment_id': {
-                'type': 'ID!',
-                'value': environment_id
-            }
-        },
-        return_object=[
-            {'assignments': [
-                'assignment_id',
-                'start',
-                'end',
-                {'assigned': [
-                    {'... on Device': [
-                        'device_type'
-                    ]}
-                ]}
-            ]}
-        ]
-    )
-    filtered_assignments = minimal_honeycomb.filter_assignments(
-        assignments=result.get('assignments'),
-        start_time=start,
-        end_time=end
-    )
-    camera_assignment_ids = list()
-    for assignment in filtered_assignments:
-        device_type = assignment.get('assigned').get('device_type')
-        if device_type is not None and device_type in camera_device_types:
-            camera_assignment_ids.append(assignment.get('assignment_id'))
-    if len(camera_assignment_ids) == 0:
-        raise ValueError('No camera assignments found in specified environment for specified time span')
-    logger.info('Found {} camera assignments for specified environment and time span'.format(len(camera_assignment_ids)))
-    return camera_assignment_ids
-
-def fetch_camera_assignment_ids_from_camera_properties(
-    start=None,
-    end=None,
-    camera_device_ids=None,
-    camera_part_numbers=None,
-    camera_names=None,
-    camera_serial_numbers=None,
-    chunk_size=100,
-    client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None
-):
-    if camera_device_ids is None and camera_names is None and camera_part_numbers is None and camera_serial_numbers is None:
-        return None
-    query_list=list()
-    if camera_device_ids is not None:
-        query_list.append({
-            'field': 'device_id',
-            'operator': 'IN',
-            'values': camera_device_ids
-        })
-    if camera_part_numbers is not None:
-        query_list.append({
-            'field': 'part_number',
-            'operator': 'IN',
-            'values': camera_part_numbers
-        })
-    if camera_names is not None:
-        query_list.append({
-            'field': 'name',
-            'operator': 'IN',
-            'values': camera_names
-        })
-    if camera_serial_numbers is not None:
-        query_list.append({
-            'field': 'serial_number',
-            'operator': 'IN',
-            'values': camera_serial_numbers
-        })
-    logger.info('Fetching camera assignments for cameras with specified properties')
-    if client is None:
-        client = minimal_honeycomb.MinimalHoneycombClient(
-            uri=uri,
-            token_uri=token_uri,
-            audience=audience,
-            client_id=client_id,
-            client_secret=client_secret
-        )
-    result = client.bulk_query(
-        request_name='searchDevices',
-        arguments={
-            'query': {
-                'type': 'QueryExpression!',
-                'value': {
-                    'operator': 'AND',
-                    'children': query_list
-                }
-            }
-        },
-        return_data=[
-            'device_id',
-            {'assignments': [
-                'assignment_id',
-                'start',
-                'end'
-            ]}
-        ],
-        id_field_name='device_id',
-        chunk_size=chunk_size
-    )
-    assignments = list()
-    for datum in result:
-        if datum.get('assignments') is not None and len(datum.get('assignments')) > 0:
-            assignments.extend(datum.get('assignments'))
-    filtered_assignments = minimal_honeycomb.filter_assignments(
-        assignments=assignments,
-        start_time=start,
-        end_time=end
-    )
-    if len(filtered_assignments) == 0:
-        raise ValueError('No camera assignments match specified camera device IDs/names/part numbers/serial numbers and time span')
-    camera_assignment_ids = [assignment.get('assignment_id') for assignment in filtered_assignments]
-    return camera_assignment_ids
-
-def search_datapoints(
-    query_list,
-    return_data,
-    chunk_size=100,
-    client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None
-):
-    logger.info('Searching for datapoints that match the specified parameters')
-    if client is None:
-        client = minimal_honeycomb.MinimalHoneycombClient(
-            uri=uri,
-            token_uri=token_uri,
-            audience=audience,
-            client_id=client_id,
-            client_secret=client_secret
-        )
-    result = client.bulk_query(
-        request_name='searchDatapoints',
-        arguments={
-            'query': {
-                'type': 'QueryExpression!',
-                'value': {
-                    'operator': 'AND',
-                    'children': query_list
-                }
-            }
-        },
-        return_data=return_data,
-        id_field_name = 'data_id',
-        chunk_size=chunk_size
-    )
-    logger.info('Fetched {} datapoints'.format(len(result)))
-    return result
 
 def video_timestamp_min(start):
     original_tzinfo = start.tzinfo

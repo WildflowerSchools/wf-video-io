@@ -6,7 +6,7 @@ VERSION = open(os.path.join(BASEDIR, 'VERSION')).read().strip()
 
 # Dependencies (format is 'PYPI_PACKAGE_NAME[>=]=VERSION_NUMBER')
 BASE_DEPENDENCIES = [
-    'wf-minimal-honeycomb-python>=0.6.0',
+    'wf-honeycomb_io>=0.2.0',
     'wf-cv-utils>=2.0.0',
     'opencv-python>=4.5.1',
     'boto3>=1.17'

@@ -279,7 +279,6 @@ def fetch_video_metadata(
     if environment_name is not None:
         environment_id = honeycomb_io.fetch_environment_id(
             environment_name=environment_name,
-            chunk_size=chunk_size,
             client=client,
             uri=uri,
             token_uri=token_uri,

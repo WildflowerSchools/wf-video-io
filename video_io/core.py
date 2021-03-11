@@ -1,11 +1,14 @@
-import honeycomb_io
-import cv_utils
-import cv2 as cv
-import boto3
-import os
-import math
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import datetime
 import logging
+import math
+import os
+
+import boto3
+import cv_utils
+import cv2 as cv
+import honeycomb_io
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +34,8 @@ def fetch_videos(
     client_id=None,
     client_secret=None,
     local_video_directory='./videos',
-    video_filename_extension='mp4'
+    video_filename_extension='mp4',
+    download_workers=4,
 ):
     """
     Downloads videos that match search parameters and returns their metadata.
@@ -89,7 +93,8 @@ def fetch_videos(
     video_metadata_with_local_paths = download_video_files(
         video_metadata=video_metadata,
         local_video_directory=local_video_directory,
-        video_filename_extension=video_filename_extension
+        video_filename_extension=video_filename_extension,
+        download_workers=download_workers,
     )
     return video_metadata_with_local_paths
 
@@ -399,10 +404,12 @@ def fetch_video_metadata(
         })
     return video_metadata
 
+
 def download_video_files(
     video_metadata,
     local_video_directory='./videos',
-    video_filename_extension='mp4'
+    video_filename_extension='mp4',
+    download_workers=4,
 ):
     """
     Downloads videos from S3 to local directory tree and returns metadata with
@@ -430,22 +437,29 @@ def download_video_files(
     Returns:
         (list of dict): Metadata for videos with local path information appended
     """
-    video_metadata_with_local_paths = list()
-    for video in video_metadata:
-        download_path = video_local_path(
-            local_video_directory=local_video_directory,
-            environment_id=video.get('environment_id'),
-            assignment_id=video.get('assignment_id'),
-            video_timestamp=video.get('video_timestamp'),
-            video_filename_extension=video_filename_extension
-        )
-        if not os.path.exists(download_path):
-            load_file_from_s3(video.get('key'), video.get('bucket'), download_path)
-        else:
-            logger.info('File {} already exists'.format(download_path))
-        video['video_local_path'] = download_path
-        video_metadata_with_local_paths.append(video)
+    video_metadata_with_local_paths = []
+    executor = ProcessPoolExecutor(max_workers=download_workers)
+    futures = [executor.submit(_download_video, video, local_video_directory, video_filename_extension) for video in video_metadata]
+    for future in as_completed(futures):
+        video_metadata_with_local_paths.append(future.result())
     return video_metadata_with_local_paths
+
+
+def _download_video(video, local_video_directory, video_filename_extension):
+    download_path = video_local_path(
+        local_video_directory=local_video_directory,
+        environment_id=video.get('environment_id'),
+        assignment_id=video.get('assignment_id'),
+        video_timestamp=video.get('video_timestamp'),
+        video_filename_extension=video_filename_extension
+    )
+    if not os.path.exists(download_path):
+        load_file_from_s3(video.get('key'), video.get('bucket'), download_path)
+    else:
+        logger.info('File {} already exists'.format(download_path))
+    video['video_local_path'] = download_path
+    return video
+
 
 def video_local_path(
     local_video_directory,

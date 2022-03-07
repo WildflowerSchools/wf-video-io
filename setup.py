@@ -9,12 +9,19 @@ BASE_DEPENDENCIES = [
     'wf-honeycomb_io>=0.2.0',
     'wf-cv-utils>=2.0.0',
     'opencv-python>=4.5.1',
-    'boto3>=1.17'
+    'boto3>=1.17',
+    'jmespath',
+    'tenacity',
 ]
 
-# TEST_DEPENDENCIES = [
-# ]
-#
+TEST_DEPENDENCIES = [
+    'behave',
+    'pymongo>=4.0.1',
+    'auth0-python',
+    'cachetools',
+    'python-jose',
+]
+
 # LOCAL_DEPENDENCIES = [
 # ]
 
@@ -32,7 +39,7 @@ setup(
     author='Theodore Quinn',
     author_email='ted.quinn@wildflowerschools.org',
     install_requires=BASE_DEPENDENCIES,
-    # tests_require=TEST_DEPENDENCIES,
+    tests_require=TEST_DEPENDENCIES,
     # extras_require = {
     #     'test': TEST_DEPENDENCIES,
     #     'local': LOCAL_DEPENDENCIES

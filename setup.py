@@ -12,6 +12,7 @@ BASE_DEPENDENCIES = [
     'boto3>=1.17',
     'jmespath',
     'tenacity',
+    'wf_fastapi_auth0>=1.0',
 ]
 
 TEST_DEPENDENCIES = [

@@ -298,7 +298,15 @@ async def fetch_video_metadata(
     video_client = client_from_honeycomb_settings(client, token_uri, audience, client_id, client_secret)
     if environment_id is not None and (all(map(lambda x: x is None, [camera_device_types, camera_device_ids, camera_part_numbers, camera_names, camera_serial_numbers]))):
         logger.info('Environment search executing')
-        result = await video_client.get_videos_metadata(environment_id, video_timestamp_min_utc, video_timestamp_max_utc)
+        result = list()
+        video_metadata_pages = video_client.get_videos_metadata_paginated(
+            environment_id=environment_id,
+            start_date=video_timestamp_min_utc,
+            end_date=video_timestamp_max_utc
+        )
+        async for video_metadata_page in video_metadata_pages:
+            result.append(video_metadata_page)
+        # result = await video_client.get_videos_metadata(environment_id, video_timestamp_min_utc, video_timestamp_max_utc)
     elif camera_device_ids is not None:
         raise NotImplementedError("loading by camera_device_ids is not yet supported")
         # map camera_device_ids to the metadata loader, merge the results

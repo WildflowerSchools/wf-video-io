@@ -246,45 +246,41 @@ async def fetch_video_metadata(
     Returns:
         (list of dict): Metadata for videos that match search parameters
     """
-    if (start is not None or end is not None) and video_timestamps is not None:
-        raise ValueError('Cannot specify start/end and list of video timestamps')
-    if video_timestamps is None and (start is None or end is None):
-        raise ValueError('If not specifying specific timestamps, must specify both start and end times')
+    if video_timestamps is not None:
+        raise NotImplementedError('Fetching specific timestamps no longer supported')
+    if start is None or end is None:
+        raise NotImplementedError('Now that fetching specific timestamps is no longer supported, you must specify a start and end time')
+    if camera_assignment_ids is not None:
+        raise NotImplementedError('Specification of cameras by assignment ID no longer supported')
+    if camera_part_numbers is not None:
+        raise NotImplementedError('Specification of cameras by part numbers no longer supported')
+    if environment_id is None and environment_name is None:
+        raise NotImplementedError('Now that specification of cameras by assignment ID is no longer supported, you must specify an environment ID or environment name')
+    if environment_id is not None and environment_name is not None:
+        raise ValueError('Cannot specify both an environment ID and an environment_name')
     if (
-        camera_assignment_ids is not None and
+        camera_device_ids is not None and
         (
-            environment_id is not None or
-            environment_name is not None
-        )
-    ):
-        raise ValueError('Cannot specify camera assignment IDs and environment')
-    if (
-        camera_assignment_ids is not None and
-        (
-            camera_device_ids is not None or
-            camera_part_numbers is not None or
+            camera_device_types is not None or
             camera_names is not None or
             camera_serial_numbers is not None
         )
     ):
-        raise ValueError('Cannot specify camera assignment IDs and camera device properties')
-    if environment_id is not None and environment_name is not None:
-        raise ValueError('Cannot specify environment ID and environment name')
-    if video_timestamps is not None:
-        raise NotImplementedError("fetching specific timestamps is not yet implemented")
-        # video_timestamps_utc = [video_timestamp.astimezone(datetime.timezone.utc) for video_timestamp in video_timestamps]
-        # video_timestamp_min_utc = min(video_timestamps)
-        # video_timestamp_max_utc = max(video_timestamps)
-        # start_utc = video_timestamp_min_utc
-        # end_utc = video_timestamp_max_utc + VIDEO_DURATION
-        # video_timestamps_utc_honeycomb = [honeycomb_io.to_honeycomb_datetime(video_timestamp_utc) for video_timestamp_utc in video_timestamps_utc]
-    else:
-        start_utc = start.astimezone(datetime.timezone.utc)
-        end_utc = end.astimezone(datetime.timezone.utc)
-        video_timestamp_min_utc = video_timestamp_min(start_utc)
-        video_timestamp_max_utc = video_timestamp_max(end_utc)
-        start_utc_honeycomb = honeycomb_io.to_honeycomb_datetime(start_utc)
-        end_utc_honeycomb = honeycomb_io.to_honeycomb_datetime(end_utc)
+        raise ValueError('Cannot specify both camera device IDs and camera device types/part numbers/names/serial numbers')
+    if (
+        camera_device_types is not None and
+        (
+            camera_names is not None or
+            camera_serial_numbers is not None
+        )
+    ):
+        raise ValueError('Cannot specify both camera device types and part numbers/names/serial numbers')
+    start_utc = start.astimezone(datetime.timezone.utc)
+    end_utc = end.astimezone(datetime.timezone.utc)
+    start_utc_honeycomb = honeycomb_io.to_honeycomb_datetime(start_utc)
+    end_utc_honeycomb = honeycomb_io.to_honeycomb_datetime(end_utc)
+    video_timestamp_min_utc = video_timestamp_min(start_utc)
+    video_timestamp_max_utc = video_timestamp_max(end_utc)
     if environment_name is not None:
         environment_id = honeycomb_io.fetch_environment_id(
             environment_name=environment_name,
@@ -295,10 +291,37 @@ async def fetch_video_metadata(
             client_id=client_id,
             client_secret=client_secret
         )
+    if camera_device_types is not None:
+        camera_device_ids = honeycomb_io.fetch_camera_ids_from_environment(
+            start=start_utc,
+            end=end_utc,
+            environment_id=environment_id,
+            camera_device_types=camera_device_types,
+            client=client,
+            uri=uri,
+            token_uri=token_uri,
+            audience=audience,
+            client_id=client_id,
+            client_secret=client_secret
+        )
+    if (
+        camera_names is not None or
+        camera_serial_numbers is not None
+    ):
+        camera_device_ids = honeycomb_io.fetch_camera_ids_from_camera_properties(
+            camera_names=camera_names,
+            camera_serial_numbers=camera_serial_numbers,
+            client=client,
+            uri=uri,
+            token_uri=token_uri,
+            audience=audience,
+            client_id=client_id,
+            client_secret=client_secret
+        )
     video_client = client_from_honeycomb_settings(client, token_uri, audience, client_id, client_secret)
-    if environment_id is not None and (all(map(lambda x: x is None, [camera_device_types, camera_device_ids, camera_part_numbers, camera_names, camera_serial_numbers]))):
-        logger.info('Environment search executing')
-        result = list()
+    result = list()
+    if camera_device_ids is None:
+        logger.info('Fetching video metadata for all cameras in specified environment')
         video_metadata_pages = video_client.get_videos_metadata_paginated(
             environment_id=environment_id,
             start_date=video_timestamp_min_utc,
@@ -306,110 +329,18 @@ async def fetch_video_metadata(
         )
         async for video_metadata_page in video_metadata_pages:
             result.append(video_metadata_page)
-        # result = await video_client.get_videos_metadata(environment_id, video_timestamp_min_utc, video_timestamp_max_utc)
-    elif camera_device_ids is not None:
-        raise NotImplementedError("loading by camera_device_ids is not yet supported")
-        # map camera_device_ids to the metadata loader, merge the results
     else:
-        raise NotImplementedError("loading by camera_part_numbers, camera_device_types, camera_serial_numbers, and camera_names is not yet supported")
-        # camera_assignment_ids_from_environment = honeycomb_io.fetch_camera_assignment_ids_from_environment(
-        #     start=start_utc,
-        #     end=end_utc,
-        #     environment_id=environment_id,
-        #     camera_device_types=camera_device_types,
-        #     client=client,
-        #     uri=uri,
-        #     token_uri=token_uri,
-        #     audience=audience,
-        #     client_id=client_id,
-        #     client_secret=client_secret
-        # )
-        # camera_assignment_ids_from_camera_properties = honeycomb_io.fetch_camera_assignment_ids_from_camera_properties(
-        #     start=start_utc,
-        #     end=end_utc,
-        #     camera_device_ids=camera_device_ids,
-        #     camera_part_numbers=camera_part_numbers,
-        #     camera_names=camera_names,
-        #     camera_serial_numbers=camera_serial_numbers,
-        #     chunk_size=100,
-        #     client=client,
-        #     uri=uri,
-        #     token_uri=token_uri,
-        #     audience=audience,
-        #     client_id=client_id,
-        #     client_secret=client_secret
-        # )
-        # logger.info('Building query list for video metadata search')
-        #
-        # query_map = {}
-        # if start is not None:
-        #     query_list.append({
-        #         'field': 'timestamp',
-        #         'operator': 'GTE',
-        #         'value': video_timestamp_min_utc
-        #     })
-        # if end is not None:
-        #     query_list.append({
-        #         'field': 'timestamp',
-        #         'operator': 'LTE',
-        #         'value':video_timestamp_max_utc
-        #     })
-        # if video_timestamps is not None:
-        #     query_list.append({
-        #         'field': 'timestamp',
-        #         'operator': 'IN',
-        #         'values': video_timestamps_utc_honeycomb
-        #     })
-        # if camera_assignment_ids is not None:
-        #     query_list.append({
-        #         'field': 'source',
-        #         'operator': 'IN',
-        #         'values': camera_assignment_ids
-        #     })
-        # if camera_assignment_ids_from_environment is not None:
-        #     query_list.append({
-        #         'field': 'source',
-        #         'operator': 'IN',
-        #         'values': camera_assignment_ids_from_environment
-        #     })
-        # if camera_assignment_ids_from_camera_properties is not None:
-        #     query_list.append({
-        #         'field': 'source',
-        #         'operator': 'IN',
-        #         'values': camera_assignment_ids_from_camera_properties
-        #     })
-        # return_data= [
-        #     'data_id',
-        #     'timestamp',
-        #     {'source': [
-        #         {'... on Assignment': [
-        #             {'environment': [
-        #                 'environment_id'
-        #             ]},
-        #             'assignment_id',
-        #             {'assigned': [
-        #                 {'... on Device': [
-        #                     'device_id'
-        #                 ]}
-        #             ]}
-        #         ]}
-        #     ]},
-        #     {'file': [
-        #         'bucketName',
-        #         'key'
-        #     ]}
-        # ]
-        # result = honeycomb_io.search_datapoints(
-        #     query_list=query_list,
-        #     return_data=return_data,
-        #     chunk_size=chunk_size,
-        #     client=client,
-        #     uri=uri,
-        #     token_uri=token_uri,
-        #     audience=audience,
-        #     client_id=client_id,
-        #     client_secret=client_secret
-        # )
+        logger.info('Fetching video metadata for specific cameras')
+        for camera_id in camera_device_ids:
+            logger.info('Fetching video metadata for camera device ID {}'.format(camera_id))
+            video_metadata_pages = video_client.get_videos_metadata_paginated(
+                environment_id=environment_id,
+                start_date=video_timestamp_min_utc,
+                end_date=video_timestamp_max_utc,
+                camera_id=camera_id
+            )
+            async for video_metadata_page in video_metadata_pages:
+                result.append(video_metadata_page)
     video_metadata = list()
     logger.info('Parsing {} returned video metadata'.format(len(result)))
     for datum in result:
@@ -417,7 +348,6 @@ async def fetch_video_metadata(
         video_metadata.append({
             'data_id': datum.get('id'),
             'video_timestamp': datetime.datetime.fromisoformat(datum.get('timestamp')),
-            # 'video_timestamp': honeycomb_io.from_honeycomb_datetime(datum.get('timestamp')),
             'environment_id': meta.get('environment_id'),
             'assignment_id': meta.get('assignment_id'),
             'device_id': meta.get('camera_id'),
@@ -720,7 +650,7 @@ def video_timestamp_max(end):
         end_naive = end
     timestamp_max_naive = (
         datetime.datetime.min +
-        (math.ceil((end_naive - datetime.datetime.min)/VIDEO_DURATION) - 1)*VIDEO_DURATION
+        math.ceil((end_naive - datetime.datetime.min)/VIDEO_DURATION)*VIDEO_DURATION
     )
     if original_tzinfo:
         timestamp_max = timestamp_max_naive.replace(tzinfo=datetime.timezone.utc).astimezone(original_tzinfo)

@@ -161,7 +161,7 @@ class VideoStorageClient:
     async def get_videos_metadata(self, environment_id, start_date, end_date, camera_id=None, skip=0, limit=100):
         request = {
             "method": "GET",
-            "url": f'{self.DOMAIN}/videos/{environment_id}/{camera_id}' if camera_id is not None else f'{self.DOMAIN}/videos/{environment_id}',
+            "url": f'{self.DOMAIN}/videos/{environment_id}/device/{camera_id}' if camera_id is not None else f'{self.DOMAIN}/videos/{environment_id}',
             "headers": {
                 "Authorization": f"bearer {self.token}",
             },

@@ -351,8 +351,7 @@ async def fetch_video_metadata(
             'environment_id': meta.get('environment_id'),
             'assignment_id': meta.get('assignment_id'),
             'device_id': meta.get('camera_id'),
-            'path': meta.get('path'),
-            'synced': Path(meta.get('path')).is_file()
+            'path': meta.get('path')
         })
     return video_metadata
 

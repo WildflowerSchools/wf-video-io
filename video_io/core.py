@@ -1,3 +1,4 @@
+import asyncio
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import datetime
 import logging
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 VIDEO_DURATION = datetime.timedelta(seconds=10)
 
-def fetch_videos(
+async def fetch_videos(
     start=None,
     end=None,
     video_timestamps=None,
@@ -71,7 +72,7 @@ def fetch_videos(
         (list of dict): Metadata for videos with local path information appended
     """
     logger.info('Fetching metadata for videos that match specified parameters')
-    video_metadata = fetch_video_metadata(
+    video_metadata = await fetch_video_metadata(
         start=start,
         end=end,
         video_timestamps=video_timestamps,
@@ -182,7 +183,7 @@ def fetch_images(
     )
     return image_metadata_with_local_paths
 
-def fetch_video_metadata(
+async def fetch_video_metadata(
     start=None,
     end=None,
     video_timestamps=None,
@@ -297,7 +298,7 @@ def fetch_video_metadata(
     video_client = client_from_honeycomb_settings(client, token_uri, audience, client_id, client_secret)
     if environment_id is not None and (all(map(lambda x: x is None, [camera_device_types, camera_device_ids, camera_part_numbers, camera_names, camera_serial_numbers]))):
         logger.info('Environment search executing')
-        results = video_client.get_videos_metadata(environment_id, video_timestamp_min_utc, video_timestamp_max_utc)
+        result = await video_client.get_videos_metadata(environment_id, video_timestamp_min_utc, video_timestamp_max_utc)
     elif camera_device_ids is not None:
         pass
         # map camera_device_ids to the metadata loader, merge the results

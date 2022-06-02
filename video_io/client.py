@@ -1,3 +1,4 @@
+import asyncio
 import concurrent.futures
 import json
 import os
@@ -130,8 +131,12 @@ class VideoStorageClient:
         prefix = destination if destination is not None else VIDEO_STORAGE_LOCAL_CACHE_DIRECTORY
         os.makedirs(prefix, exist_ok=True)
         meta = self.get_videos_metadata_paginated(environment_id, start_date, end_date, camera_id)
-        async for vid_meta in meta:
-            await self.get_video(vid_meta["meta"]["path"], destination)
+        futures = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as e:
+            async for vid_meta in meta:
+                f = e.submit(asyncio.run, self.get_video(path=vid_meta["meta"]["path"], destination=destination))
+                futures.append(f)
+        res = [r for r in concurrent.futures.as_completed(futures)]
 
     async def get_video(self, path, destination):
         p = Path(destination).joinpath(path)
@@ -153,7 +158,6 @@ class VideoStorageClient:
             logger.info('Video file %s finished downloading', path)
         else:
             logger.info('Video file %s already exists', path)
-            pass
 
 
     async def get_videos_metadata_paginated(self, environment_id, start_date, end_date, camera_id=None, skip=0, limit=100):

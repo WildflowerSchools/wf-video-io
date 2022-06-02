@@ -413,17 +413,14 @@ async def download_video_files(
         client_id=client_id,
         client_secret=client_secret
     )
-    async for video_metadatum in async_generator(video_metadata):
-        await video_client.get_video(
-            path=video_metadatum['path'],
-            destination=local_video_directory
-        )
-        video_metadatum['video_local_path'] = os.path.join(local_video_directory, video_metadatum['path'])
+    futures = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as e:
+        for video_metadatum in video_metadata:
+            f = e.submit(asyncio.run, video_client.get_video(path=video_metadatum['path'], destination=local_video_directory))
+            video_metadatum['video_local_path'] = os.path.join(local_video_directory, video_metadatum['path'])
+            futures.append(f)
+    _ = [r for r in concurrent.futures.as_completed(futures)]
     return video_metadata
-
-async def async_generator(input_list):
-    for item in input_list:
-        yield item
 
 async def fetch_image_metadata(
     image_timestamps,

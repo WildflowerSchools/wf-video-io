@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import subprocess
 from typing import List, Dict
+import logging
 
 from auth0.v3.management.users import Users
 from auth0.v3.management.clients import Clients
@@ -15,6 +16,7 @@ import jmespath
 import requests
 from tenacity import retry, wait_random, stop_after_attempt
 
+logger = logging.getLogger(__name__)
 
 class SyncError(Exception):
     pass
@@ -132,20 +134,26 @@ class VideoStorageClient:
             await self.get_video(vid_meta["meta"]["path"], destination)
 
     async def get_video(self, path, destination):
-        request = {
-            "method": "GET",
-            "url": f'{self.DOMAIN}/video/{path}',
-            "headers": {
-                "Authorization": f"bearer {self.token}",
-            },
-        }
-        response = requests.request(**request)
-        if response.status_code == 200:
-            p = Path(destination).joinpath(path)
-            pp = p.parent
-            if not pp.exists():
-                pp.mkdir(parents=True, exist_ok=True)
-            p.write_bytes(response.content)
+        p = Path(destination).joinpath(path)
+        if not p.is_file():
+            logger.info('Downloading video file %s', path)
+            request = {
+                "method": "GET",
+                "url": f'{self.DOMAIN}/video/{path}',
+                "headers": {
+                    "Authorization": f"bearer {self.token}",
+                },
+            }
+            response = requests.request(**request)
+            if response.status_code == 200:
+                pp = p.parent
+                if not pp.exists():
+                    pp.mkdir(parents=True, exist_ok=True)
+                p.write_bytes(response.content)
+            logger.info('Video file %s finished downloading', path)
+        else:
+            logger.info('Video file %s already exists', path)
+            pass
 
 
     async def get_videos_metadata_paginated(self, environment_id, start_date, end_date, camera_id=None, skip=0, limit=100):

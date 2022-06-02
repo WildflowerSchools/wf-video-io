@@ -1,4 +1,4 @@
-from concurrent.futures import ProcessPoolExecutor, as_completed
+import concurrent.futures
 import datetime
 import logging
 import math
@@ -37,8 +37,8 @@ async def fetch_videos(
     client_id=None,
     client_secret=None,
     local_video_directory='./videos',
-    video_filename_extension='mp4',
-    download_workers=4,
+    video_filename_extension=None,
+    download_workers=None
 ):
     """
     Downloads videos that match search parameters and returns their metadata.
@@ -93,11 +93,15 @@ async def fetch_videos(
         client_secret=client_secret
     )
     logger.info('Downloading video files')
-    video_metadata_with_local_paths = download_video_files(
+    video_metadata_with_local_paths = await download_video_files(
         video_metadata=video_metadata,
         local_video_directory=local_video_directory,
         video_filename_extension=video_filename_extension,
         download_workers=download_workers,
+        token_uri=token_uri,
+        audience=audience,
+        client_id=client_id,
+        client_secret=client_secret
     )
     return video_metadata_with_local_paths
 
@@ -318,7 +322,13 @@ async def fetch_video_metadata(
             client_id=client_id,
             client_secret=client_secret
         )
-    video_client = client_from_honeycomb_settings(client, token_uri, audience, client_id, client_secret)
+    video_client = client_from_honeycomb_settings(
+        client=None,
+        token_uri=token_uri,
+        audience=audience,
+        client_id=client_id,
+        client_secret=client_secret
+    )
     result = list()
     if camera_device_ids is None:
         logger.info('Fetching video metadata for all cameras in specified environment')
@@ -356,11 +366,15 @@ async def fetch_video_metadata(
     return video_metadata
 
 
-def download_video_files(
+async def download_video_files(
     video_metadata,
     local_video_directory='./videos',
-    video_filename_extension='mp4',
-    download_workers=4,
+    video_filename_extension=None,
+    download_workers=None,
+    token_uri=None,
+    audience=None,
+    client_id=None,
+    client_secret=None
 ):
     """
     Downloads videos from S3 to local directory tree and returns metadata with
@@ -388,62 +402,28 @@ def download_video_files(
     Returns:
         (list of dict): Metadata for videos with local path information appended
     """
-    video_metadata_with_local_paths = []
-    executor = ProcessPoolExecutor(max_workers=download_workers)
-    futures = [executor.submit(_download_video, video, local_video_directory, video_filename_extension) for video in video_metadata]
-    for future in as_completed(futures):
-        video_metadata_with_local_paths.append(future.result())
-    return video_metadata_with_local_paths
-
-
-def _download_video(video, local_video_directory, video_filename_extension):
-    download_path = video_local_path(
-        local_video_directory=local_video_directory,
-        environment_id=video.get('environment_id'),
-        assignment_id=video.get('assignment_id'),
-        video_timestamp=video.get('video_timestamp'),
-        video_filename_extension=video_filename_extension
+    if video_filename_extension is not None:
+        raise NotImplementedError('Specifying video filename extension is no longer supported')
+    if download_workers is not None:
+        raise NotImplementedError('Specifying number of download workers no longer supported')
+    video_client = client_from_honeycomb_settings(
+        client=None,
+        token_uri=token_uri,
+        audience=audience,
+        client_id=client_id,
+        client_secret=client_secret
     )
-    if not os.path.exists(download_path):
-        load_file_from_s3(video.get('key'), video.get('bucket'), download_path)
-    else:
-        logger.info('File {} already exists'.format(download_path))
-    video['video_local_path'] = download_path
-    return video
-
-
-def video_local_path(
-    local_video_directory,
-    environment_id,
-    assignment_id,
-    video_timestamp,
-    video_filename_extension='mp4'
-):
-    return os.path.join(
-        local_video_directory,
-        environment_id,
-        assignment_id,
-        '{}.{}'.format(
-            video_timestamp.strftime("%Y/%m/%d/%H-%M-%S"),
-            video_filename_extension
+    async for video_metadatum in async_generator(video_metadata):
+        await video_client.get_video(
+            path=video_metadatum['path'],
+            destination=local_video_directory
         )
-    )
+        video_metadatum['video_local_path'] = os.path.join(local_video_directory, video_metadatum['path'])
+    return video_metadata
 
-def load_file_from_s3(
-    key,
-    bucket_name,
-    download_path
-):
-    if not Path(download_path).is_file():
-        s3 = boto3.resource('s3')
-        logger.info('Loading {} from {} into {}'.format(
-            key,
-            bucket_name,
-            download_path
-        ))
-        download_directory = os.path.dirname(download_path)
-        os.makedirs(download_directory, exist_ok=True)
-        s3.meta.client.download_file(bucket_name, key, download_path)
+async def async_generator(input_list):
+    for item in input_list:
+        yield item
 
 async def fetch_image_metadata(
     image_timestamps,

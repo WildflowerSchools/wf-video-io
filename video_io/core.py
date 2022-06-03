@@ -105,10 +105,6 @@ async def fetch_videos(
         local_video_directory=local_video_directory,
         video_filename_extension=video_filename_extension,
         max_workers=max_workers,
-        token_uri=token_uri,
-        audience=audience,
-        client_id=client_id,
-        client_secret=client_secret,
         video_storage_url=video_storage_url,
         video_storage_auth_domain=video_storage_auth_domain,
         video_storage_audience=video_storage_audience,
@@ -385,10 +381,6 @@ async def download_video_files(
     local_video_directory='./videos',
     video_filename_extension=None,
     max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
-    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
-    audience=video_io.config.HONEYCOMB_AUDIENCE,
-    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
-    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
     video_storage_url=video_io.config.VIDEO_STORAGE_URL,
     video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
@@ -451,11 +443,16 @@ async def fetch_image_metadata(
     camera_names=None,
     camera_serial_numbers=None,
     client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None
+    uri=video_io.config.HONEYCOMB_URI,
+    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
+    audience=video_io.config.HONEYCOMB_AUDIENCE,
+    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
     Searches Honeycomb for videos containing images that match specified search
@@ -523,7 +520,12 @@ async def fetch_image_metadata(
         token_uri=token_uri,
         audience=audience,
         client_id=client_id,
-        client_secret=client_secret
+        client_secret=client_secret,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
     )
     image_metadata = list()
     for video in video_metadata:

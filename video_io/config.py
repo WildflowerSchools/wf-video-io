@@ -1,6 +1,8 @@
 import os
 import multiprocessing
 
+VIDEO_DURATION = datetime.timedelta(seconds=10)
+
 VIDEO_STORAGE_URL = os.environ.get('VIDEO_STORAGE_URL', 'https://video.api.wildflower-tech.org')
 
 VIDEO_STORAGE_AUTH_DOMAIN = os.environ.get('VIDEO_STORAGE_AUTH_DOMAIN', os.environ.get('AUTH0_DOMAIN'))

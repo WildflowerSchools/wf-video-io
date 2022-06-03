@@ -15,8 +15,6 @@ import honeycomb_io
 
 logger = logging.getLogger(__name__)
 
-VIDEO_DURATION = datetime.timedelta(seconds=10)
-
 async def fetch_videos(
     start=None,
     end=None,
@@ -627,7 +625,7 @@ def video_timestamp_min(start):
         start_naive = start
     timestamp_min_naive = (
         datetime.datetime.min +
-        math.floor((start_naive - datetime.datetime.min)/VIDEO_DURATION)*VIDEO_DURATION
+        math.floor((start_naive - datetime.datetime.min)/video_io.config.VIDEO_DURATION)*video_io.config.VIDEO_DURATION
     )
     if original_tzinfo:
         timestamp_min = timestamp_min_naive.replace(tzinfo=datetime.timezone.utc).astimezone(original_tzinfo)
@@ -643,7 +641,7 @@ def video_timestamp_max(end):
         end_naive = end
     timestamp_max_naive = (
         datetime.datetime.min +
-        math.ceil((end_naive - datetime.datetime.min)/VIDEO_DURATION)*VIDEO_DURATION
+        math.ceil((end_naive - datetime.datetime.min)/video_io.config.VIDEO_DURATION)*video_io.config.VIDEO_DURATION
     )
     if original_tzinfo:
         timestamp_max = timestamp_max_naive.replace(tzinfo=datetime.timezone.utc).astimezone(original_tzinfo)

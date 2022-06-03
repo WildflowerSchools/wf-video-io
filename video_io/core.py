@@ -1,3 +1,4 @@
+import video_io.config
 import concurrent.futures
 import datetime
 import logging
@@ -31,14 +32,14 @@ async def fetch_videos(
     camera_serial_numbers=None,
     chunk_size=100,
     client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None,
     local_video_directory='./videos',
     video_filename_extension=None,
-    download_workers=None
+    max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
+    uri=video_io.config.HONEYCOMB_URI,
+    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
+    audience=video_io.config.HONEYCOMB_AUDIENCE,
+    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET
 ):
     """
     Downloads videos that match search parameters and returns their metadata.
@@ -97,7 +98,7 @@ async def fetch_videos(
         video_metadata=video_metadata,
         local_video_directory=local_video_directory,
         video_filename_extension=video_filename_extension,
-        download_workers=download_workers,
+        max_workers=max_workers,
         token_uri=token_uri,
         audience=audience,
         client_id=client_id,
@@ -201,11 +202,11 @@ async def fetch_video_metadata(
     camera_serial_numbers=None,
     chunk_size=100,
     client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None
+    uri=video_io.config.HONEYCOMB_URI,
+    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
+    audience=video_io.config.HONEYCOMB_AUDIENCE,
+    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
 ):
     """
     Searches Honeycomb for videos that match specified search parameters and
@@ -370,11 +371,11 @@ async def download_video_files(
     video_metadata,
     local_video_directory='./videos',
     video_filename_extension=None,
-    download_workers=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None
+    max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
+    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
+    audience=video_io.config.HONEYCOMB_AUDIENCE,
+    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET
 ):
     """
     Downloads videos from S3 to local directory tree and returns metadata with
@@ -404,8 +405,6 @@ async def download_video_files(
     """
     if video_filename_extension is not None:
         raise NotImplementedError('Specifying video filename extension is no longer supported')
-    if download_workers is not None:
-        raise NotImplementedError('Specifying number of download workers no longer supported')
     video_client = client_from_honeycomb_settings(
         client=None,
         token_uri=token_uri,
@@ -414,7 +413,7 @@ async def download_video_files(
         client_secret=client_secret
     )
     futures = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as e:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as e:
         for video_metadatum in video_metadata:
             f = e.submit(asyncio.run, video_client.get_video(path=video_metadatum['path'], destination=local_video_directory))
             video_metadatum['video_local_path'] = os.path.join(local_video_directory, video_metadatum['path'])

@@ -29,7 +29,6 @@ async def fetch_videos(
     camera_part_numbers=None,
     camera_names=None,
     camera_serial_numbers=None,
-    chunk_size=100,
     client=None,
     local_video_directory='./videos',
     video_filename_extension=None,
@@ -63,7 +62,6 @@ async def fetch_videos(
         camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
-        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
         client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
         uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
         token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
@@ -89,7 +87,6 @@ async def fetch_videos(
         camera_part_numbers=camera_part_numbers,
         camera_names=camera_names,
         camera_serial_numbers=camera_serial_numbers,
-        chunk_size=chunk_size,
         client=client,
         uri=uri,
         token_uri=token_uri,
@@ -130,7 +127,6 @@ async def fetch_images(
     camera_part_numbers=None,
     camera_names=None,
     camera_serial_numbers=None,
-    chunk_size=100,
     client=None,
     uri=None,
     token_uri=None,
@@ -158,7 +154,6 @@ async def fetch_images(
         camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
-        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
         client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
         uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
         token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
@@ -184,7 +179,6 @@ async def fetch_images(
         camera_part_numbers=camera_part_numbers,
         camera_names=camera_names,
         camera_serial_numbers=camera_serial_numbers,
-        chunk_size=chunk_size,
         client=client,
         uri=uri,
         token_uri=token_uri,
@@ -214,7 +208,6 @@ async def fetch_video_metadata(
     camera_part_numbers=None,
     camera_names=None,
     camera_serial_numbers=None,
-    chunk_size=100,
     client=None,
     uri=video_io.config.HONEYCOMB_URI,
     token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
@@ -259,7 +252,6 @@ async def fetch_video_metadata(
         camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
-        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
         client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
         uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
         token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
@@ -458,7 +450,6 @@ async def fetch_image_metadata(
     camera_part_numbers=None,
     camera_names=None,
     camera_serial_numbers=None,
-    chunk_size=100,
     client=None,
     uri=None,
     token_uri=None,
@@ -494,7 +485,6 @@ async def fetch_image_metadata(
         camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
-        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
         client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
         uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
         token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
@@ -528,7 +518,6 @@ async def fetch_image_metadata(
         camera_part_numbers=camera_part_numbers,
         camera_names=camera_names,
         camera_serial_numbers=camera_serial_numbers,
-        chunk_size=chunk_size,
         client=client,
         uri=uri,
         token_uri=token_uri,

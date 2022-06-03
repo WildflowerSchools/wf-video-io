@@ -58,30 +58,6 @@ def get_video_file_details(path):
     ], capture_output=True)
     return json.loads(ffprobe_out.stdout)
 
-
-def client_from_honeycomb_settings(
-    client=None,
-    auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
-    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
-    audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
-    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
-    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET
-):
-    if client is not None:
-        token = client.client.accessToken
-    elif client_id is not None and client_secret is not None:
-        get_token = GetToken(auth_domain, timeout=10)
-        response = get_token.client_credentials(
-            client_id,
-            client_secret,
-            audience
-        )
-        token = response['access_token']
-    else:
-        token = client_token(auth_domain=auth_domain, audience=audience)
-    return VideoStorageClient(token=token)
-
-
 CACHE_PATH_FILE = re.compile('^(?P<environment_id>[a-fA-F0-9-]*)/(?P<camera_id>[a-fA-F0-9-]*)/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/(?P<hour>[0-9]{2})/(?P<file>.*)$')
 CACHE_PATH_HOUR = re.compile('^(?P<environment_id>[a-fA-F0-9-]*)/(?P<camera_id>[a-fA-F0-9-]*)/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/(?P<hour>[0-9]{2})$')
 CACHE_PATH_DAY = re.compile('^(?P<environment_id>[a-fA-F0-9-]*)/(?P<camera_id>[a-fA-F0-9-]*)/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})$')

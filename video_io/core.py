@@ -1,4 +1,5 @@
 import video_io.config
+import video_io.client
 import concurrent.futures
 import datetime
 import logging
@@ -11,8 +12,6 @@ import boto3
 import cv_utils
 import cv2 as cv
 import honeycomb_io
-
-from video_io.client import client_from_honeycomb_settings
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +38,12 @@ async def fetch_videos(
     token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
     audience=video_io.config.HONEYCOMB_AUDIENCE,
     client_id=video_io.config.HONEYCOMB_CLIENT_ID,
-    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
     Downloads videos that match search parameters and returns their metadata.
@@ -91,7 +95,12 @@ async def fetch_videos(
         token_uri=token_uri,
         audience=audience,
         client_id=client_id,
-        client_secret=client_secret
+        client_secret=client_secret,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
     )
     logger.info('Downloading video files')
     video_metadata_with_local_paths = await download_video_files(
@@ -102,7 +111,12 @@ async def fetch_videos(
         token_uri=token_uri,
         audience=audience,
         client_id=client_id,
-        client_secret=client_secret
+        client_secret=client_secret,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
     )
     return video_metadata_with_local_paths
 
@@ -207,6 +221,11 @@ async def fetch_video_metadata(
     audience=video_io.config.HONEYCOMB_AUDIENCE,
     client_id=video_io.config.HONEYCOMB_CLIENT_ID,
     client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
     Searches Honeycomb for videos that match specified search parameters and
@@ -323,12 +342,14 @@ async def fetch_video_metadata(
             client_id=client_id,
             client_secret=client_secret
         )
-    video_client = client_from_honeycomb_settings(
-        client=None,
-        token_uri=token_uri,
-        audience=audience,
-        client_id=client_id,
-        client_secret=client_secret
+    video_client = video_io.client.VideoStorageClient(
+        token=None,
+        url=video_storage_url,
+        auth_domain=video_storage_auth_domain,
+        audience=video_storage_audience,
+        client_id=video_storage_client_id,
+        client_secret=video_storage_client_secret
+
     )
     result = list()
     if camera_device_ids is None:
@@ -375,7 +396,12 @@ async def download_video_files(
     token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
     audience=video_io.config.HONEYCOMB_AUDIENCE,
     client_id=video_io.config.HONEYCOMB_CLIENT_ID,
-    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
     Downloads videos from S3 to local directory tree and returns metadata with
@@ -405,12 +431,13 @@ async def download_video_files(
     """
     if video_filename_extension is not None:
         raise NotImplementedError('Specifying video filename extension is no longer supported')
-    video_client = client_from_honeycomb_settings(
-        client=None,
-        token_uri=token_uri,
-        audience=audience,
-        client_id=client_id,
-        client_secret=client_secret
+    video_client = video_io.client.VideoStorageClient(
+        token=None,
+        url=video_storage_url,
+        auth_domain=video_storage_auth_domain,
+        audience=video_storage_audience,
+        client_id=video_storage_client_id,
+        client_secret=video_storage_client_secret
     )
     futures = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as e:

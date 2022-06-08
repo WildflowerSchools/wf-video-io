@@ -8,7 +8,6 @@ import asyncio
 import os
 from pathlib import Path
 
-import boto3
 import cv_utils
 import cv2 as cv
 import honeycomb_io

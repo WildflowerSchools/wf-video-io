@@ -9,7 +9,6 @@ BASE_DEPENDENCIES = [
     'wf-honeycomb_io>=0.2.0',
     'wf-cv-utils>=2.0.0',
     'opencv-python>=4.5.1',
-    'boto3>=1.17',
     'jmespath',
     'tenacity',
     'wf_fastapi_auth0>=1.0',

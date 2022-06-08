@@ -1,23 +1,20 @@
-import asyncio
-from concurrent.futures import ProcessPoolExecutor, as_completed
+import video_io.config
+import video_io.client
+import concurrent.futures
 import datetime
 import logging
 import math
+import asyncio
 import os
 from pathlib import Path
 
-import boto3
 import cv_utils
 import cv2 as cv
 import honeycomb_io
 
-from video_io.client import client_from_honeycomb_settings
-
 logger = logging.getLogger(__name__)
 
-VIDEO_DURATION = datetime.timedelta(seconds=10)
-
-async def fetch_videos(
+def fetch_videos(
     start=None,
     end=None,
     video_timestamps=None,
@@ -29,16 +26,20 @@ async def fetch_videos(
     camera_part_numbers=None,
     camera_names=None,
     camera_serial_numbers=None,
-    chunk_size=100,
-    client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None,
     local_video_directory='./videos',
-    video_filename_extension='mp4',
-    download_workers=4,
+    video_filename_extension=None,
+    max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
+    client=None,
+    uri=video_io.config.HONEYCOMB_URI,
+    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
+    audience=video_io.config.HONEYCOMB_AUDIENCE,
+    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
     Downloads videos that match search parameters and returns their metadata.
@@ -50,23 +51,28 @@ async def fetch_videos(
         start (datetime): Start of time period to fetch (default is None)
         end (datetime): End of time period to fetch (default is None)
         video_timestamps (list of datetime): List of video start times to fetch (default is None)
-        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        camera_assignment_ids (list of str): Honeycomb assignment IDs [NO LONGER SUPPORTED]
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
         camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
-        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers [NO LONGER SUPPORTED]
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
-        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
-        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
-        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
-        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
-        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
-        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
-        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
         local_video_directory (str): Base of local video tree (default is './videos')
-        video_filename_extension (str): Filename extension for video files (default is 'mp4')
+        video_filename_extension (str): Filename extension for video files [NO LONGER SUPPORTED]
+        max_workers (int): Maximum number of processes to launch when downloading video (default is number of CPUs - 1)
+        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        uri (str): Server URI for Honeycomb (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Auth0 token URI for Honeycomb (default is value of HONEYCOMB_TOKEN_URI or AUTH0_TOKEN_URI environment variable)
+        audience (str): Auth0 audience for Honeycomb (default is value of HONEYCOMB_AUDIENCE or API_AUDIENCE environment variable)
+        client_id (str): Auth0 client ID for Honeycomb (default is value of HONEYCOMB_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        client_secret (str): Auth0 client secret for Honeycomb (default is value of HONEYCOMB_CLIENT_SECRET AUTH0_CLIENT_SECRET environment variable)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for videos with local path information appended
@@ -84,20 +90,29 @@ async def fetch_videos(
         camera_part_numbers=camera_part_numbers,
         camera_names=camera_names,
         camera_serial_numbers=camera_serial_numbers,
-        chunk_size=chunk_size,
         client=client,
         uri=uri,
         token_uri=token_uri,
         audience=audience,
         client_id=client_id,
-        client_secret=client_secret
+        client_secret=client_secret,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
     )
     logger.info('Downloading video files')
     video_metadata_with_local_paths = download_video_files(
         video_metadata=video_metadata,
         local_video_directory=local_video_directory,
         video_filename_extension=video_filename_extension,
-        download_workers=download_workers,
+        max_workers=max_workers,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
     )
     return video_metadata_with_local_paths
 
@@ -111,17 +126,22 @@ def fetch_images(
     camera_part_numbers=None,
     camera_names=None,
     camera_serial_numbers=None,
-    chunk_size=100,
-    client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None,
     local_image_directory='./images',
     image_filename_extension='png',
     local_video_directory='./videos',
-    video_filename_extension='mp4'
+    video_filename_extension=None,
+    max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
+    client=None,
+    uri=video_io.config.HONEYCOMB_URI,
+    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
+    audience=video_io.config.HONEYCOMB_AUDIENCE,
+    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
     Downloads images that match search parameters and returns their metadata.
@@ -131,25 +151,30 @@ def fetch_images(
 
     Args:
         image_timestamps (list of datetime): List of image timestamps to fetch
-        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        camera_assignment_ids (list of str): Honeycomb assignment IDs [NO LONGER SUPPORTED]
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
         camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
-        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers [NO LONGER SUPPORTED]
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
-        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
-        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
-        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
-        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
-        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
-        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
-        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
         local_image_directory (str): Base of local image file tree (default is './images')
         image_filename_extension (str): Filename extension for image files (default is 'png')
         local_video_directory (str): Base of local video file tree (default is './videos')
-        video_filename_extension (str): Filename extension for video files (default is 'mp4')
+        video_filename_extension (str): Filename extension for video files [NO LONGER SUPPORTED]
+        max_workers (int): Maximum number of processes to launch when downloading video (default is number of CPUs - 1)
+        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        uri (str): Server URI for Honeycomb (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Auth0 token URI for Honeycomb (default is value of HONEYCOMB_TOKEN_URI or AUTH0_TOKEN_URI environment variable)
+        audience (str): Auth0 audience for Honeycomb (default is value of HONEYCOMB_AUDIENCE or API_AUDIENCE environment variable)
+        client_id (str): Auth0 client ID for Honeycomb (default is value of HONEYCOMB_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        client_secret (str): Auth0 client secret for Honeycomb (default is value of HONEYCOMB_CLIENT_SECRET AUTH0_CLIENT_SECRET environment variable)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for images with local path information appended
@@ -165,13 +190,17 @@ def fetch_images(
         camera_part_numbers=camera_part_numbers,
         camera_names=camera_names,
         camera_serial_numbers=camera_serial_numbers,
-        chunk_size=chunk_size,
         client=client,
         uri=uri,
         token_uri=token_uri,
         audience=audience,
         client_id=client_id,
-        client_secret=client_secret
+        client_secret=client_secret,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
     )
     logger.info('Downloading image files')
     image_metadata_with_local_paths = download_image_files(
@@ -179,7 +208,12 @@ def fetch_images(
         local_image_directory=local_image_directory,
         image_filename_extension=image_filename_extension,
         local_video_directory=local_video_directory,
-        video_filename_extension=video_filename_extension
+        video_filename_extension=video_filename_extension,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
     )
     return image_metadata_with_local_paths
 
@@ -195,53 +229,59 @@ async def fetch_video_metadata(
     camera_part_numbers=None,
     camera_names=None,
     camera_serial_numbers=None,
-    chunk_size=100,
     client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None
+    uri=video_io.config.HONEYCOMB_URI,
+    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
+    audience=video_io.config.HONEYCOMB_AUDIENCE,
+    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
     Searches Honeycomb for videos that match specified search parameters and
     returns their metadata.
 
-    Videos must match all specified search parameters (i.e., the function
-    performs a logical AND of all of the queries). If camera information is not
-    specified, returns results for all devices that have one of the specified
-    camera device types ('PI3WITHCAMERA' and 'PIZEROWITHCAMERA' by default).
-    Redundant combinations of search terms will generate an error (e.g., user
-    cannot specify environment name and environment ID, camera assignment IDs
-    and camera device IDs, etc.)
-
     If start and end are specified, returns all videos that overlap with
     specified start and end (e.g., if start is 10:32:56 and end is 10:33:20,
     returns videos starting at 10:32:50, 10:33:00 and 10:33:10).
 
+    Videos must match all specified search parameters (i.e., the function
+    performs a logical AND of all of the queries). If camera information is not
+    specified, returns results for all cameras with videos in the specified time
+    span. Redundant combinations of search terms will generate an error (e.g.,
+    user cannot specify environment name and environment ID).
+
     Returned metadata is a list of dictionaries, one for each video. Each
     dictionary has the following fields: data_id, video_timestamp,
-    environment_id, assignment_id, device_id, bucket, key.
+    environment_id, assignment_id, device_id, and path.
 
     Args:
         start (datetime): Start of time period to fetch (default is None)
         end (datetime): End of time period to fetch (default is None)
         video_timestamps (list of datetime): List of video start times to fetch (default is None)
-        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        camera_assignment_ids (list of str): Honeycomb assignment IDs [NO LONGER SUPPORTED]
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
         camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
-        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers [NO LONGER SUPPORTED]
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
-        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
         client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
-        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
-        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
-        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
-        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
-        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
+        uri (str): Server URI for Honeycomb (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Auth0 token URI for Honeycomb (default is value of HONEYCOMB_TOKEN_URI or AUTH0_TOKEN_URI environment variable)
+        audience (str): Auth0 audience for Honeycomb (default is value of HONEYCOMB_AUDIENCE or API_AUDIENCE environment variable)
+        client_id (str): Auth0 client ID for Honeycomb (default is value of HONEYCOMB_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        client_secret (str): Auth0 client secret for Honeycomb (default is value of HONEYCOMB_CLIENT_SECRET AUTH0_CLIENT_SECRET environment variable)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for videos that match search parameters
@@ -250,41 +290,43 @@ async def fetch_video_metadata(
         raise ValueError('Cannot specify start/end and list of video timestamps')
     if video_timestamps is None and (start is None or end is None):
         raise ValueError('If not specifying specific timestamps, must specify both start and end times')
+    if camera_assignment_ids is not None:
+        raise NotImplementedError('Specification of cameras by assignment ID no longer supported')
+    if camera_part_numbers is not None:
+        raise NotImplementedError('Specification of cameras by part numbers no longer supported')
+    if environment_id is None and environment_name is None:
+        raise NotImplementedError('Now that specification of cameras by assignment ID is no longer supported, you must specify an environment ID or environment name')
+    if environment_id is not None and environment_name is not None:
+        raise ValueError('Cannot specify both an environment ID and an environment_name')
     if (
-        camera_assignment_ids is not None and
+        camera_device_ids is not None and
         (
-            environment_id is not None or
-            environment_name is not None
-        )
-    ):
-        raise ValueError('Cannot specify camera assignment IDs and environment')
-    if (
-        camera_assignment_ids is not None and
-        (
-            camera_device_ids is not None or
-            camera_part_numbers is not None or
+            camera_device_types is not None or
             camera_names is not None or
             camera_serial_numbers is not None
         )
     ):
-        raise ValueError('Cannot specify camera assignment IDs and camera device properties')
-    if environment_id is not None and environment_name is not None:
-        raise ValueError('Cannot specify environment ID and environment name')
+        raise ValueError('Cannot specify both camera device IDs and camera device types/part numbers/names/serial numbers')
+    if (
+        camera_device_types is not None and
+        (
+            camera_names is not None or
+            camera_serial_numbers is not None
+        )
+    ):
+        raise ValueError('Cannot specify both camera device types and part numbers/names/serial numbers')
     if video_timestamps is not None:
-        raise NotImplementedError("fetching specific timestamps is not yet implemented")
-        # video_timestamps_utc = [video_timestamp.astimezone(datetime.timezone.utc) for video_timestamp in video_timestamps]
-        # video_timestamp_min_utc = min(video_timestamps)
-        # video_timestamp_max_utc = max(video_timestamps)
-        # start_utc = video_timestamp_min_utc
-        # end_utc = video_timestamp_max_utc + VIDEO_DURATION
-        # video_timestamps_utc_honeycomb = [honeycomb_io.to_honeycomb_datetime(video_timestamp_utc) for video_timestamp_utc in video_timestamps_utc]
+        video_timestamps_utc = [video_timestamp.astimezone(datetime.timezone.utc) for video_timestamp in video_timestamps]
+        video_timestamp_min_utc = min(video_timestamps)
+        video_timestamp_max_utc = max(video_timestamps)
+        start_utc = video_timestamp_min_utc
+        end_utc = video_timestamp_max_utc + video_io.config.VIDEO_DURATION
     else:
+        video_timestamps_utc = None
         start_utc = start.astimezone(datetime.timezone.utc)
         end_utc = end.astimezone(datetime.timezone.utc)
         video_timestamp_min_utc = video_timestamp_min(start_utc)
         video_timestamp_max_utc = video_timestamp_max(end_utc)
-        start_utc_honeycomb = honeycomb_io.to_honeycomb_datetime(start_utc)
-        end_utc_honeycomb = honeycomb_io.to_honeycomb_datetime(end_utc)
     if environment_name is not None:
         environment_id = honeycomb_io.fetch_environment_id(
             environment_name=environment_name,
@@ -295,149 +337,151 @@ async def fetch_video_metadata(
             client_id=client_id,
             client_secret=client_secret
         )
-    video_client = client_from_honeycomb_settings(client, token_uri, audience, client_id, client_secret)
-    if environment_id is not None and (all(map(lambda x: x is None, [camera_device_types, camera_device_ids, camera_part_numbers, camera_names, camera_serial_numbers]))):
-        logger.info('Environment search executing')
-        result = await video_client.get_videos_metadata(environment_id, video_timestamp_min_utc, video_timestamp_max_utc)
-    elif camera_device_ids is not None:
-        pass
-        # map camera_device_ids to the metadata loader, merge the results
-    else:
-        raise NotImplementedError("loading by camera_part_numbers, camera_device_types, camera_serial_numbers, and camera_names is not yet supported")
-        # camera_assignment_ids_from_environment = honeycomb_io.fetch_camera_assignment_ids_from_environment(
-        #     start=start_utc,
-        #     end=end_utc,
-        #     environment_id=environment_id,
-        #     camera_device_types=camera_device_types,
-        #     client=client,
-        #     uri=uri,
-        #     token_uri=token_uri,
-        #     audience=audience,
-        #     client_id=client_id,
-        #     client_secret=client_secret
-        # )
-        # camera_assignment_ids_from_camera_properties = honeycomb_io.fetch_camera_assignment_ids_from_camera_properties(
-        #     start=start_utc,
-        #     end=end_utc,
-        #     camera_device_ids=camera_device_ids,
-        #     camera_part_numbers=camera_part_numbers,
-        #     camera_names=camera_names,
-        #     camera_serial_numbers=camera_serial_numbers,
-        #     chunk_size=100,
-        #     client=client,
-        #     uri=uri,
-        #     token_uri=token_uri,
-        #     audience=audience,
-        #     client_id=client_id,
-        #     client_secret=client_secret
-        # )
-        # logger.info('Building query list for video metadata search')
-        #
-        # query_map = {}
-        # if start is not None:
-        #     query_list.append({
-        #         'field': 'timestamp',
-        #         'operator': 'GTE',
-        #         'value': video_timestamp_min_utc
-        #     })
-        # if end is not None:
-        #     query_list.append({
-        #         'field': 'timestamp',
-        #         'operator': 'LTE',
-        #         'value':video_timestamp_max_utc
-        #     })
-        # if video_timestamps is not None:
-        #     query_list.append({
-        #         'field': 'timestamp',
-        #         'operator': 'IN',
-        #         'values': video_timestamps_utc_honeycomb
-        #     })
-        # if camera_assignment_ids is not None:
-        #     query_list.append({
-        #         'field': 'source',
-        #         'operator': 'IN',
-        #         'values': camera_assignment_ids
-        #     })
-        # if camera_assignment_ids_from_environment is not None:
-        #     query_list.append({
-        #         'field': 'source',
-        #         'operator': 'IN',
-        #         'values': camera_assignment_ids_from_environment
-        #     })
-        # if camera_assignment_ids_from_camera_properties is not None:
-        #     query_list.append({
-        #         'field': 'source',
-        #         'operator': 'IN',
-        #         'values': camera_assignment_ids_from_camera_properties
-        #     })
-        # return_data= [
-        #     'data_id',
-        #     'timestamp',
-        #     {'source': [
-        #         {'... on Assignment': [
-        #             {'environment': [
-        #                 'environment_id'
-        #             ]},
-        #             'assignment_id',
-        #             {'assigned': [
-        #                 {'... on Device': [
-        #                     'device_id'
-        #                 ]}
-        #             ]}
-        #         ]}
-        #     ]},
-        #     {'file': [
-        #         'bucketName',
-        #         'key'
-        #     ]}
-        # ]
-        # result = honeycomb_io.search_datapoints(
-        #     query_list=query_list,
-        #     return_data=return_data,
-        #     chunk_size=chunk_size,
-        #     client=client,
-        #     uri=uri,
-        #     token_uri=token_uri,
-        #     audience=audience,
-        #     client_id=client_id,
-        #     client_secret=client_secret
-        # )
+    if camera_device_types is not None:
+        camera_device_ids = honeycomb_io.fetch_camera_ids_from_environment(
+            start=start_utc,
+            end=end_utc,
+            environment_id=environment_id,
+            camera_device_types=camera_device_types,
+            client=client,
+            uri=uri,
+            token_uri=token_uri,
+            audience=audience,
+            client_id=client_id,
+            client_secret=client_secret
+        )
+    if (
+        camera_names is not None or
+        camera_serial_numbers is not None
+    ):
+        camera_device_ids = honeycomb_io.fetch_camera_ids_from_camera_properties(
+            camera_names=camera_names,
+            camera_serial_numbers=camera_serial_numbers,
+            client=client,
+            uri=uri,
+            token_uri=token_uri,
+            audience=audience,
+            client_id=client_id,
+            client_secret=client_secret
+        )
+    result = asyncio.run(_fetch_video_metadata(
+        video_timestamp_min_utc=video_timestamp_min_utc,
+        video_timestamp_max_utc=video_timestamp_max_utc,
+        video_timestamps_utc=video_timestamps_utc,
+        environment_id=environment_id,
+        camera_device_ids=camera_device_ids,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
+    ))
     video_metadata = list()
     logger.info('Parsing {} returned video metadata'.format(len(result)))
     for datum in result:
         meta = datum.get('meta')
         video_metadata.append({
             'data_id': datum.get('id'),
-            'video_timestamp': honeycomb_io.from_honeycomb_datetime(datum.get('timestamp')),
+            'video_timestamp': datetime.datetime.fromisoformat(datum.get('timestamp')),
             'environment_id': meta.get('environment_id'),
             'assignment_id': meta.get('assignment_id'),
             'device_id': meta.get('camera_id'),
-            'path': meta.get('path'),
-            'synced': Path(meta.get('path')).is_file(),
+            'path': meta.get('path')
         })
     return video_metadata
 
+async def _fetch_video_metadata(
+    video_timestamp_min_utc,
+    video_timestamp_max_utc,
+    video_timestamps_utc,
+    environment_id,
+    camera_device_ids,
+    video_storage_url,
+    video_storage_auth_domain,
+    video_storage_audience,
+    video_storage_client_id,
+    video_storage_client_secret
+):
+    video_client = video_io.client.VideoStorageClient(
+        token=None,
+        url=video_storage_url,
+        auth_domain=video_storage_auth_domain,
+        audience=video_storage_audience,
+        client_id=video_storage_client_id,
+        client_secret=video_storage_client_secret
+
+    )
+    result = list()
+    if video_timestamps_utc is None:
+        if camera_device_ids is None:
+            logger.info('Fetching video metadata for all cameras in specified environment')
+            video_metadata_pages = video_client.get_videos_metadata_paginated(
+                environment_id=environment_id,
+                start_date=video_timestamp_min_utc,
+                end_date=video_timestamp_max_utc
+            )
+            async for video_metadata_page in video_metadata_pages:
+                result.append(video_metadata_page)
+        else:
+            logger.info('Fetching video metadata for specific cameras')
+            for camera_id in camera_device_ids:
+                logger.info('Fetching video metadata for camera device ID {}'.format(camera_id))
+                video_metadata_pages = video_client.get_videos_metadata_paginated(
+                    environment_id=environment_id,
+                    start_date=video_timestamp_min_utc,
+                    end_date=video_timestamp_max_utc,
+                    camera_id=camera_id
+                )
+                async for video_metadata_page in video_metadata_pages:
+                    result.append(video_metadata_page)
+    else:
+        for video_timestamp_utc in video_timestamps_utc:
+            logger.info('Fetching video metadata for video timestamp {}'.format(video_timestamp_utc.isoformat()))
+            if camera_device_ids is None:
+                logger.info('Fetching video metadata for all cameras in specified environment')
+                video_metadata_pages = video_client.get_videos_metadata_paginated(
+                    environment_id=environment_id,
+                    start_date=video_timestamp_utc,
+                    end_date=video_timestamp_utc + video_io.config.VIDEO_DURATION
+                )
+                async for video_metadata_page in video_metadata_pages:
+                    result.append(video_metadata_page)
+            else:
+                logger.info('Fetching video metadata for specific cameras')
+                for camera_id in camera_device_ids:
+                    logger.info('Fetching video metadata for camera device ID {}'.format(camera_id))
+                    video_metadata_pages = video_client.get_videos_metadata_paginated(
+                        environment_id=environment_id,
+                        start_date=video_timestamp_utc,
+                        end_date=video_timestamp_utc + video_io.config.VIDEO_DURATION,
+                        camera_id=camera_id
+                    )
+                    async for video_metadata_page in video_metadata_pages:
+                        result.append(video_metadata_page)
+    return result
 
 def download_video_files(
     video_metadata,
     local_video_directory='./videos',
-    video_filename_extension='mp4',
-    download_workers=4,
+    video_filename_extension=None,
+    max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
-    Downloads videos from S3 to local directory tree and returns metadata with
+    Downloads videos from video service to local directory tree and returns metadata with
     local path information added.
 
     Videos are specified as a list of dictionaries, as returned by the function
     fetch_video_metadata(). Each dictionary is assumed to have the following
     fields: data_id, video_timestamp, environment_id, assignment_id, device_id,
-    bucket, and key (though only a subset of these are currently used).
+    and path (though only a subset of these are currently used).
 
-    Structure of resulting tree is [base directory]/[environment ID]/[camera
-    assignment ID]/[year]/[month]/[day]. Filenames are in the form
-    [hour]-[minute]-[second].[filename extension]. Videos are only downloaded if
-    they don't already exist in the local directory tree. Directories are
-    created as necessary.
+    Videos are only downloaded if they don't already exist in the local
+    directory tree. Directories are created as necessary.
 
     Function returns the metadata with local path information appended to each
     record (in the field video_local_path).
@@ -446,66 +490,57 @@ def download_video_files(
         video_metadata (list of dict): Metadata in the format output by fetch_video_metadata()
         local_video_directory (str): Base of local video file tree (default is './videos')
         video_filename_extension (str): Filename extension for video files (default is 'mp4')
+        video_filename_extension (str): Filename extension for video files [NO LONGER SUPPORTED]
+        max_workers (int): Maximum number of processes to launch when downloading video (default is number of CPUs - 1)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for videos with local path information appended
     """
-    video_metadata_with_local_paths = []
-    executor = ProcessPoolExecutor(max_workers=download_workers)
-    futures = [executor.submit(_download_video, video, local_video_directory, video_filename_extension) for video in video_metadata]
-    for future in as_completed(futures):
-        video_metadata_with_local_paths.append(future.result())
-    return video_metadata_with_local_paths
-
-
-def _download_video(video, local_video_directory, video_filename_extension):
-    download_path = video_local_path(
+    if video_filename_extension is not None:
+        raise NotImplementedError('Specifying video filename extension is no longer supported')
+    video_metadata = asyncio.run(_download_video_files(
+        video_metadata=video_metadata,
         local_video_directory=local_video_directory,
-        environment_id=video.get('environment_id'),
-        assignment_id=video.get('assignment_id'),
-        video_timestamp=video.get('video_timestamp'),
-        video_filename_extension=video_filename_extension
-    )
-    if not os.path.exists(download_path):
-        load_file_from_s3(video.get('key'), video.get('bucket'), download_path)
-    else:
-        logger.info('File {} already exists'.format(download_path))
-    video['video_local_path'] = download_path
-    return video
+        max_workers=max_workers,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
+    ))
+    return video_metadata
 
-
-def video_local_path(
+async def _download_video_files(
+    video_metadata,
     local_video_directory,
-    environment_id,
-    assignment_id,
-    video_timestamp,
-    video_filename_extension='mp4'
+    max_workers,
+    video_storage_url,
+    video_storage_auth_domain,
+    video_storage_audience,
+    video_storage_client_id,
+    video_storage_client_secret
 ):
-    return os.path.join(
-        local_video_directory,
-        environment_id,
-        assignment_id,
-        '{}.{}'.format(
-            video_timestamp.strftime("%Y/%m/%d/%H-%M-%S"),
-            video_filename_extension
-        )
+    video_client = video_io.client.VideoStorageClient(
+        token=None,
+        url=video_storage_url,
+        auth_domain=video_storage_auth_domain,
+        audience=video_storage_audience,
+        client_id=video_storage_client_id,
+        client_secret=video_storage_client_secret
     )
-
-def load_file_from_s3(
-    key,
-    bucket_name,
-    download_path
-):
-    if not Path(download_path).is_file():
-        s3 = boto3.resource('s3')
-        logger.info('Loading {} from {} into {}'.format(
-            key,
-            bucket_name,
-            download_path
-        ))
-        download_directory = os.path.dirname(download_path)
-        os.makedirs(download_directory, exist_ok=True)
-        s3.meta.client.download_file(bucket_name, key, download_path)
+    futures = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as e:
+        for video_metadatum in video_metadata:
+            f = e.submit(asyncio.run, video_client.get_video(path=video_metadatum['path'], destination=local_video_directory))
+            video_metadatum['video_local_path'] = os.path.join(local_video_directory, video_metadatum['path'])
+            futures.append(f)
+    _ = [r for r in concurrent.futures.as_completed(futures)]
+    return video_metadata
 
 def fetch_image_metadata(
     image_timestamps,
@@ -517,13 +552,17 @@ def fetch_image_metadata(
     camera_part_numbers=None,
     camera_names=None,
     camera_serial_numbers=None,
-    chunk_size=100,
     client=None,
-    uri=None,
-    token_uri=None,
-    audience=None,
-    client_id=None,
-    client_secret=None
+    uri=video_io.config.HONEYCOMB_URI,
+    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
+    audience=video_io.config.HONEYCOMB_AUDIENCE,
+    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
     Searches Honeycomb for videos containing images that match specified search
@@ -533,33 +572,35 @@ def fetch_image_metadata(
     with video frames. Videos containing these images must match all specified
     search parameters (i.e., the function performs a logical AND of all of the
     queries). If camera information is not specified, returns results for all
-    devices that have one of the specified camera device types ('PI3WITHCAMERA'
-    and 'PIZEROWITHCAMERA' by default). Redundant combinations of search terms
-    will generate an error (e.g., user cannot specify environment name and
-    environment ID, camera assignment IDs and camera device IDs, etc.)
+    cameras. Redundant combinations of search terms will generate an error
+    (e.g., user cannot specify environment name and environment ID, etc.)
 
     Returned metadata is a list of dictionaries, one for each image. Each
     dictionary contains information both about the image and the video that
     contains the image: data_id, video_timestamp, environment_id, assignment_id,
-    device_id, bucket, key, and image_timestamp, and frame_number.
+    device_id, path, and image_timestamp, and frame_number.
 
     Args:
         image_timestamps (list of datetime): List of image timestamps to fetch
-        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        camera_assignment_ids (list of str): Honeycomb assignment IDs [NO LONGER SUPPORTED]
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
         camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
-        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers [NO LONGER SUPPORTED]
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
-        chunk_size (int): Maximum number of data points to be returned by each Honeycomb query (default is 100)
         client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
-        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
-        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
-        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
-        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
-        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
+        uri (str): Server URI for Honeycomb (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Auth0 token URI for Honeycomb (default is value of HONEYCOMB_TOKEN_URI or AUTH0_TOKEN_URI environment variable)
+        audience (str): Auth0 audience for Honeycomb (default is value of HONEYCOMB_AUDIENCE or API_AUDIENCE environment variable)
+        client_id (str): Auth0 client ID for Honeycomb (default is value of HONEYCOMB_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        client_secret (str): Auth0 client secret for Honeycomb (default is value of HONEYCOMB_CLIENT_SECRET AUTH0_CLIENT_SECRET environment variable)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for images that match search parameters
@@ -587,13 +628,17 @@ def fetch_image_metadata(
         camera_part_numbers=camera_part_numbers,
         camera_names=camera_names,
         camera_serial_numbers=camera_serial_numbers,
-        chunk_size=chunk_size,
         client=client,
         uri=uri,
         token_uri=token_uri,
         audience=audience,
         client_id=client_id,
-        client_secret=client_secret
+        client_secret=client_secret,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
     )
     image_metadata = list()
     for video in video_metadata:
@@ -606,28 +651,28 @@ def download_image_files(
     local_image_directory='./images',
     image_filename_extension='png',
     local_video_directory='./videos',
-    video_filename_extension='mp4'
+    video_filename_extension=None,
+    max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
-    Downloads videos from S3 to local directory tree, extract images, saves
-    images to local directory tree, and returns metadata with local path
+    Downloads videos from video service to local directory tree, extract images,
+    saves images to local directory tree, and returns metadata with local path
     information added.
 
     Images are specified as a list of dictionaries, as returned by the function
     fetch_image_metadata(). Each dictionary is expected to contain information
     both about the image and the video that contains the image and is assumed to
     have the following fields: data_id, video_timestamp, environment_id,
-    assignment_id, device_id, bucket, key, and image_timestamp, and frame_number
+    assignment_id, device_id, path, image_timestamp, and frame_number
     (though only a subset of these are currently used).
 
-    Structure of resulting video file tree is as described in documentation for
-    download_video_files(). Structure of resulting image file tree is [base
-    directory]/[environment ID]/[camera assignment ID]/[year]/[month]/[day].
-    Filenames contain the timestamp for the start of the containing video and
-    the frame number of the image in the form [hour]-[minute]-[second]_[frame
-    number].[filename extension]. Videos and images are only downloaded if they
-    don't already exist in the local directory trees. Directories are created as
-    necessary.
+    Videos and images are only downloaded if they don't already exist in the
+    local directory trees. Directories are created as necessary.
 
     Function returns the metadata with local path information appended to each
     record (in the fields video_local_path and image_local_path).
@@ -637,22 +682,34 @@ def download_image_files(
         local_image_directory (str): Base of local image file tree (default is './images')
         image_filename_extension (str): Filename extension for image files (default is 'png')
         local_video_directory (str): Base of local video file tree (default is './videos')
-        video_filename_extension (str): Filename extension for video files (default is 'mp4')
+        video_filename_extension (str): Filename extension for video files [NO LONGER SUPPORTED]
+        max_workers (int): Maximum number of processes to launch when downloading video (default is number of CPUs - 1)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for images with local path information appended
     """
     image_metadata_with_local_video_paths = download_video_files(
-        image_metadata,
+        video_metadata=image_metadata,
         local_video_directory=local_video_directory,
-        video_filename_extension=video_filename_extension
+        video_filename_extension=video_filename_extension,
+        max_workers=max_workers,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
     )
     image_metadata_with_local_paths = list()
     for image in image_metadata_with_local_video_paths:
         download_path = image_local_path(
             local_image_directory=local_image_directory,
             environment_id=image.get('environment_id'),
-            assignment_id=image.get('assignment_id'),
+            device_id = image.get('device_id'),
             video_timestamp=image.get('video_timestamp'),
             frame_number=image.get('frame_number'),
             image_filename_extension=image_filename_extension
@@ -671,7 +728,7 @@ def download_image_files(
 def image_local_path(
     local_image_directory,
     environment_id,
-    assignment_id,
+    device_id,
     video_timestamp,
     frame_number,
     image_filename_extension='png'
@@ -679,7 +736,7 @@ def image_local_path(
     return os.path.join(
         local_image_directory,
         environment_id,
-        assignment_id,
+        device_id,
         '{}_{:03}.{}'.format(
             video_timestamp.strftime("%Y/%m/%d/%H-%M-%S"),
             frame_number,
@@ -695,7 +752,7 @@ def video_timestamp_min(start):
         start_naive = start
     timestamp_min_naive = (
         datetime.datetime.min +
-        math.floor((start_naive - datetime.datetime.min)/VIDEO_DURATION)*VIDEO_DURATION
+        math.floor((start_naive - datetime.datetime.min)/video_io.config.VIDEO_DURATION)*video_io.config.VIDEO_DURATION
     )
     if original_tzinfo:
         timestamp_min = timestamp_min_naive.replace(tzinfo=datetime.timezone.utc).astimezone(original_tzinfo)
@@ -711,7 +768,7 @@ def video_timestamp_max(end):
         end_naive = end
     timestamp_max_naive = (
         datetime.datetime.min +
-        (math.ceil((end_naive - datetime.datetime.min)/VIDEO_DURATION) - 1)*VIDEO_DURATION
+        math.ceil((end_naive - datetime.datetime.min)/video_io.config.VIDEO_DURATION)*video_io.config.VIDEO_DURATION
     )
     if original_tzinfo:
         timestamp_max = timestamp_max_naive.replace(tzinfo=datetime.timezone.utc).astimezone(original_tzinfo)

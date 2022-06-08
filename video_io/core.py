@@ -52,22 +52,28 @@ def fetch_videos(
         start (datetime): Start of time period to fetch (default is None)
         end (datetime): End of time period to fetch (default is None)
         video_timestamps (list of datetime): List of video start times to fetch (default is None)
-        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        camera_assignment_ids (list of str): Honeycomb assignment IDs [NO LONGER SUPPORTED]
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
         camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
-        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers [NO LONGER SUPPORTED]
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
-        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
-        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
-        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
-        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
-        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
-        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
         local_video_directory (str): Base of local video tree (default is './videos')
-        video_filename_extension (str): Filename extension for video files (default is 'mp4')
+        video_filename_extension (str): Filename extension for video files [NO LONGER SUPPORTED]
+        max_workers (int): Maximum number of processes to launch when downloading video (default is number of CPUs - 1)
+        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        uri (str): Server URI for Honeycomb (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Auth0 token URI for Honeycomb (default is value of HONEYCOMB_TOKEN_URI or AUTH0_TOKEN_URI environment variable)
+        audience (str): Auth0 audience for Honeycomb (default is value of HONEYCOMB_AUDIENCE or API_AUDIENCE environment variable)
+        client_id (str): Auth0 client ID for Honeycomb (default is value of HONEYCOMB_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        client_secret (str): Auth0 client secret for Honeycomb (default is value of HONEYCOMB_CLIENT_SECRET AUTH0_CLIENT_SECRET environment variable)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for videos with local path information appended
@@ -146,24 +152,30 @@ def fetch_images(
 
     Args:
         image_timestamps (list of datetime): List of image timestamps to fetch
-        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        camera_assignment_ids (list of str): Honeycomb assignment IDs [NO LONGER SUPPORTED]
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
         camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
-        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers [NO LONGER SUPPORTED]
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
-        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
-        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
-        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
-        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
-        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
-        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
         local_image_directory (str): Base of local image file tree (default is './images')
         image_filename_extension (str): Filename extension for image files (default is 'png')
         local_video_directory (str): Base of local video file tree (default is './videos')
-        video_filename_extension (str): Filename extension for video files (default is 'mp4')
+        video_filename_extension (str): Filename extension for video files [NO LONGER SUPPORTED]
+        max_workers (int): Maximum number of processes to launch when downloading video (default is number of CPUs - 1)
+        client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
+        uri (str): Server URI for Honeycomb (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Auth0 token URI for Honeycomb (default is value of HONEYCOMB_TOKEN_URI or AUTH0_TOKEN_URI environment variable)
+        audience (str): Auth0 audience for Honeycomb (default is value of HONEYCOMB_AUDIENCE or API_AUDIENCE environment variable)
+        client_id (str): Auth0 client ID for Honeycomb (default is value of HONEYCOMB_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        client_secret (str): Auth0 client secret for Honeycomb (default is value of HONEYCOMB_CLIENT_SECRET AUTH0_CLIENT_SECRET environment variable)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for images with local path information appended
@@ -234,40 +246,43 @@ def fetch_video_metadata(
     Searches Honeycomb for videos that match specified search parameters and
     returns their metadata.
 
-    Videos must match all specified search parameters (i.e., the function
-    performs a logical AND of all of the queries). If camera information is not
-    specified, returns results for all devices that have one of the specified
-    camera device types ('PI3WITHCAMERA' and 'PIZEROWITHCAMERA' by default).
-    Redundant combinations of search terms will generate an error (e.g., user
-    cannot specify environment name and environment ID, camera assignment IDs
-    and camera device IDs, etc.)
-
     If start and end are specified, returns all videos that overlap with
     specified start and end (e.g., if start is 10:32:56 and end is 10:33:20,
     returns videos starting at 10:32:50, 10:33:00 and 10:33:10).
 
+    Videos must match all specified search parameters (i.e., the function
+    performs a logical AND of all of the queries). If camera information is not
+    specified, returns results for all cameras with videos in the specified time
+    span. Redundant combinations of search terms will generate an error (e.g.,
+    user cannot specify environment name and environment ID).
+
     Returned metadata is a list of dictionaries, one for each video. Each
     dictionary has the following fields: data_id, video_timestamp,
-    environment_id, assignment_id, device_id, bucket, key.
+    environment_id, assignment_id, device_id, and path.
 
     Args:
         start (datetime): Start of time period to fetch (default is None)
         end (datetime): End of time period to fetch (default is None)
         video_timestamps (list of datetime): List of video start times to fetch (default is None)
-        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        camera_assignment_ids (list of str): Honeycomb assignment IDs [NO LONGER SUPPORTED]
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
         camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
-        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers [NO LONGER SUPPORTED]
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
         client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
-        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
-        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
-        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
-        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
-        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
+        uri (str): Server URI for Honeycomb (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Auth0 token URI for Honeycomb (default is value of HONEYCOMB_TOKEN_URI or AUTH0_TOKEN_URI environment variable)
+        audience (str): Auth0 audience for Honeycomb (default is value of HONEYCOMB_AUDIENCE or API_AUDIENCE environment variable)
+        client_id (str): Auth0 client ID for Honeycomb (default is value of HONEYCOMB_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        client_secret (str): Auth0 client secret for Honeycomb (default is value of HONEYCOMB_CLIENT_SECRET AUTH0_CLIENT_SECRET environment variable)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for videos that match search parameters
@@ -458,19 +473,16 @@ def download_video_files(
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
-    Downloads videos from S3 to local directory tree and returns metadata with
+    Downloads videos from video service to local directory tree and returns metadata with
     local path information added.
 
     Videos are specified as a list of dictionaries, as returned by the function
     fetch_video_metadata(). Each dictionary is assumed to have the following
     fields: data_id, video_timestamp, environment_id, assignment_id, device_id,
-    bucket, and key (though only a subset of these are currently used).
+    and path (though only a subset of these are currently used).
 
-    Structure of resulting tree is [base directory]/[environment ID]/[camera
-    assignment ID]/[year]/[month]/[day]. Filenames are in the form
-    [hour]-[minute]-[second].[filename extension]. Videos are only downloaded if
-    they don't already exist in the local directory tree. Directories are
-    created as necessary.
+    Videos are only downloaded if they don't already exist in the local
+    directory tree. Directories are created as necessary.
 
     Function returns the metadata with local path information appended to each
     record (in the field video_local_path).
@@ -479,6 +491,13 @@ def download_video_files(
         video_metadata (list of dict): Metadata in the format output by fetch_video_metadata()
         local_video_directory (str): Base of local video file tree (default is './videos')
         video_filename_extension (str): Filename extension for video files (default is 'mp4')
+        video_filename_extension (str): Filename extension for video files [NO LONGER SUPPORTED]
+        max_workers (int): Maximum number of processes to launch when downloading video (default is number of CPUs - 1)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for videos with local path information appended
@@ -554,32 +573,35 @@ def fetch_image_metadata(
     with video frames. Videos containing these images must match all specified
     search parameters (i.e., the function performs a logical AND of all of the
     queries). If camera information is not specified, returns results for all
-    devices that have one of the specified camera device types ('PI3WITHCAMERA'
-    and 'PIZEROWITHCAMERA' by default). Redundant combinations of search terms
-    will generate an error (e.g., user cannot specify environment name and
-    environment ID, camera assignment IDs and camera device IDs, etc.)
+    cameras. Redundant combinations of search terms will generate an error
+    (e.g., user cannot specify environment name and environment ID, etc.)
 
     Returned metadata is a list of dictionaries, one for each image. Each
     dictionary contains information both about the image and the video that
     contains the image: data_id, video_timestamp, environment_id, assignment_id,
-    device_id, bucket, key, and image_timestamp, and frame_number.
+    device_id, path, and image_timestamp, and frame_number.
 
     Args:
         image_timestamps (list of datetime): List of image timestamps to fetch
-        camera_assignment_ids (list of str): Honeycomb assignment IDs (default is None)
+        camera_assignment_ids (list of str): Honeycomb assignment IDs [NO LONGER SUPPORTED]
         environment_id (str): Honeycomb environment ID (default is None)
         environment_name (str): Honeycomb environment name (default is None)
         camera_device_types (list of str): Honeycomb device types (default is None)
         camera_device_ids (list of str): Honeycomb device IDs (default is None)
-        camera_part_numbers (list of str): Honeycomb device part numbers (default is None)
+        camera_part_numbers (list of str): Honeycomb device part numbers [NO LONGER SUPPORTED]
         camera_names (list of str): Honeycomb device names (default is None)
         camera_serial_numbers (list of str): Honeycomb device serial numbers (default is None)
         client (MinimalHoneycombClient): Existing Honeycomb client (otherwise will create one)
-        uri (str): Server URI for creating Honeycomb client (default is value of HONEYCOMB_URI environment variable)
-        token_uri (str): Token URI for creating Honeycomb client (default is value of HONEYCOMB_TOKEN_URI environment variable)
-        audience (str): Audience for creating Honeycomb client (default is value of HONEYCOMB_AUDIENCE environment variable)
-        client_id: Client ID for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_ID environment variable)
-        client_secret: Client secret for creating Honeycomb client (default is value of HONEYCOMB_CLIENT_SECRET environment variable)
+        uri (str): Server URI for Honeycomb (default is value of HONEYCOMB_URI environment variable)
+        token_uri (str): Auth0 token URI for Honeycomb (default is value of HONEYCOMB_TOKEN_URI or AUTH0_TOKEN_URI environment variable)
+        audience (str): Auth0 audience for Honeycomb (default is value of HONEYCOMB_AUDIENCE or API_AUDIENCE environment variable)
+        client_id (str): Auth0 client ID for Honeycomb (default is value of HONEYCOMB_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        client_secret (str): Auth0 client secret for Honeycomb (default is value of HONEYCOMB_CLIENT_SECRET AUTH0_CLIENT_SECRET environment variable)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for images that match search parameters
@@ -639,25 +661,19 @@ def download_image_files(
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
 ):
     """
-    Downloads videos from S3 to local directory tree, extract images, saves
-    images to local directory tree, and returns metadata with local path
+    Downloads videos from video service to local directory tree, extract images,
+    saves images to local directory tree, and returns metadata with local path
     information added.
 
     Images are specified as a list of dictionaries, as returned by the function
     fetch_image_metadata(). Each dictionary is expected to contain information
     both about the image and the video that contains the image and is assumed to
     have the following fields: data_id, video_timestamp, environment_id,
-    assignment_id, device_id, bucket, key, and image_timestamp, and frame_number
+    assignment_id, device_id, path, image_timestamp, and frame_number
     (though only a subset of these are currently used).
 
-    Structure of resulting video file tree is as described in documentation for
-    download_video_files(). Structure of resulting image file tree is [base
-    directory]/[environment ID]/[camera assignment ID]/[year]/[month]/[day].
-    Filenames contain the timestamp for the start of the containing video and
-    the frame number of the image in the form [hour]-[minute]-[second]_[frame
-    number].[filename extension]. Videos and images are only downloaded if they
-    don't already exist in the local directory trees. Directories are created as
-    necessary.
+    Videos and images are only downloaded if they don't already exist in the
+    local directory trees. Directories are created as necessary.
 
     Function returns the metadata with local path information appended to each
     record (in the fields video_local_path and image_local_path).
@@ -667,7 +683,13 @@ def download_image_files(
         local_image_directory (str): Base of local image file tree (default is './images')
         image_filename_extension (str): Filename extension for image files (default is 'png')
         local_video_directory (str): Base of local video file tree (default is './videos')
-        video_filename_extension (str): Filename extension for video files (default is 'mp4')
+        video_filename_extension (str): Filename extension for video files [NO LONGER SUPPORTED]
+        max_workers (int): Maximum number of processes to launch when downloading video (default is number of CPUs - 1)
+        video_storage_url (str): Server URL for video service (default is value of VIDEO_STORAGE_URL environment variable)
+        video_storage_auth_domain (str): Auth0 domain for video service (default is value of VIDEO_STORAGE_AUTH_DOMAIN or AUTH0_DOMAIN environment variable)
+        video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
+        video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
+        video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
 
     Returns:
         (list of dict): Metadata for images with local path information appended

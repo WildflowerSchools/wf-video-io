@@ -98,7 +98,7 @@ def fetch_videos(
         video_storage_client_secret=video_storage_client_secret
     )
     logger.info('Downloading video files')
-    video_metadata_with_local_paths = asyncio.run(download_video_files(
+    video_metadata_with_local_paths = download_video_files(
         video_metadata=video_metadata,
         local_video_directory=local_video_directory,
         video_filename_extension=video_filename_extension,
@@ -108,7 +108,7 @@ def fetch_videos(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret
-    ))
+    )
     return video_metadata_with_local_paths
 
 def fetch_images(
@@ -192,7 +192,7 @@ def fetch_images(
         video_storage_client_secret=video_storage_client_secret
     )
     logger.info('Downloading image files')
-    image_metadata_with_local_paths = asyncio.run(download_image_files(
+    image_metadata_with_local_paths = download_image_files(
         image_metadata=image_metadata,
         local_image_directory=local_image_directory,
         image_filename_extension=image_filename_extension,
@@ -203,7 +203,7 @@ def fetch_images(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret
-    ))
+    )
     return image_metadata_with_local_paths
 
 def fetch_video_metadata(
@@ -350,7 +350,7 @@ def fetch_video_metadata(
             client_id=client_id,
             client_secret=client_secret
         )
-    result = asyncio.run(_get_video_metadata(
+    result = asyncio.run(_fetch_video_metadata(
         video_timestamp_min_utc=video_timestamp_min_utc,
         video_timestamp_max_utc=video_timestamp_max_utc,
         video_timestamps_utc=video_timestamps_utc,
@@ -376,7 +376,7 @@ def fetch_video_metadata(
         })
     return video_metadata
 
-async def _get_video_metadata(
+async def _fetch_video_metadata(
     video_timestamp_min_utc,
     video_timestamp_max_utc,
     video_timestamps_utc,
@@ -446,7 +446,7 @@ async def _get_video_metadata(
                         result.append(video_metadata_page)
     return result
 
-async def download_video_files(
+def download_video_files(
     video_metadata,
     local_video_directory='./videos',
     video_filename_extension=None,
@@ -485,6 +485,28 @@ async def download_video_files(
     """
     if video_filename_extension is not None:
         raise NotImplementedError('Specifying video filename extension is no longer supported')
+    video_metadata = asyncio.run(_download_video_files(
+        video_metadata=video_metadata,
+        local_video_directory=local_video_directory,
+        max_workers=max_workers,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
+    ))
+    return video_metadata
+
+async def _download_video_files(
+    video_metadata,
+    local_video_directory,
+    max_workers,
+    video_storage_url,
+    video_storage_auth_domain,
+    video_storage_audience,
+    video_storage_client_id,
+    video_storage_client_secret
+):
     video_client = video_io.client.VideoStorageClient(
         token=None,
         url=video_storage_url,
@@ -603,7 +625,7 @@ def fetch_image_metadata(
             image_metadata.append({**video, **image})
     return image_metadata
 
-async def download_image_files(
+def download_image_files(
     image_metadata,
     local_image_directory='./images',
     image_filename_extension='png',
@@ -650,7 +672,7 @@ async def download_image_files(
     Returns:
         (list of dict): Metadata for images with local path information appended
     """
-    image_metadata_with_local_video_paths = await download_video_files(
+    image_metadata_with_local_video_paths = download_video_files(
         video_metadata=image_metadata,
         local_video_directory=local_video_directory,
         video_filename_extension=video_filename_extension,

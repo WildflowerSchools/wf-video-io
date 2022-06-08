@@ -78,7 +78,7 @@ def fetch_videos(
         (list of dict): Metadata for videos with local path information appended
     """
     logger.info('Fetching metadata for videos that match specified parameters')
-    video_metadata = await fetch_video_metadata(
+    video_metadata = fetch_video_metadata(
         start=start,
         end=end,
         video_timestamps=video_timestamps,
@@ -217,7 +217,7 @@ def fetch_images(
     )
     return image_metadata_with_local_paths
 
-async def fetch_video_metadata(
+def fetch_video_metadata(
     start=None,
     end=None,
     video_timestamps=None,

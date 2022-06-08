@@ -15,7 +15,7 @@ import honeycomb_io
 
 logger = logging.getLogger(__name__)
 
-async def fetch_videos(
+def fetch_videos(
     start=None,
     end=None,
     video_timestamps=None,
@@ -73,7 +73,7 @@ async def fetch_videos(
         (list of dict): Metadata for videos with local path information appended
     """
     logger.info('Fetching metadata for videos that match specified parameters')
-    video_metadata = await fetch_video_metadata(
+    video_metadata = asyncio.run(fetch_video_metadata(
         start=start,
         end=end,
         video_timestamps=video_timestamps,
@@ -96,9 +96,9 @@ async def fetch_videos(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret
-    )
+    ))
     logger.info('Downloading video files')
-    video_metadata_with_local_paths = await download_video_files(
+    video_metadata_with_local_paths = asyncio.run(download_video_files(
         video_metadata=video_metadata,
         local_video_directory=local_video_directory,
         video_filename_extension=video_filename_extension,
@@ -108,10 +108,10 @@ async def fetch_videos(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret
-    )
+    ))
     return video_metadata_with_local_paths
 
-async def fetch_images(
+def fetch_images(
     image_timestamps,
     camera_assignment_ids=None,
     environment_id=None,
@@ -169,7 +169,7 @@ async def fetch_images(
         (list of dict): Metadata for images with local path information appended
     """
     logger.info('Fetching metadata for images that match specified parameters')
-    image_metadata = await fetch_image_metadata(
+    image_metadata = asyncio.run(fetch_image_metadata(
         image_timestamps=image_timestamps,
         camera_assignment_ids=camera_assignment_ids,
         environment_id=environment_id,
@@ -190,9 +190,9 @@ async def fetch_images(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret
-    )
+    ))
     logger.info('Downloading image files')
-    image_metadata_with_local_paths = await download_image_files(
+    image_metadata_with_local_paths = asyncio.run(download_image_files(
         image_metadata=image_metadata,
         local_image_directory=local_image_directory,
         image_filename_extension=image_filename_extension,
@@ -203,7 +203,7 @@ async def fetch_images(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret
-    )
+    ))
     return image_metadata_with_local_paths
 
 async def fetch_video_metadata(

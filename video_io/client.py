@@ -271,7 +271,7 @@ class VideoStorageClient:
                     ptype, file_details = parse_path(full_path[len(local_cache_directory):])
                     if ptype == "file":
                         file_details["path"] = full_path
-                        file_details["filepath"] = full_path[len(local_cache_directory):]
+                        file_details["filepath"] = full_path[len(local_cache_directory)+1:]
                         files_found.append(file_details)
             details["files_found"] = len(files_found)
             details["files_uploaded"] = 0

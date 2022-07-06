@@ -268,7 +268,7 @@ class VideoStorageClient:
             for root, _, files in os.walk(os.path.join(local_cache_directory, path)):
                 for file in files:
                     full_path = os.path.join(root, file)
-                    ptype, file_details = parse_path(full_path[len(local_cache_directory):])
+                    ptype, file_details = parse_path(full_path[len(local_cache_directory)+1:])
                     if ptype == "file":
                         file_details["path"] = full_path
                         file_details["filepath"] = full_path[len(local_cache_directory)+1:]

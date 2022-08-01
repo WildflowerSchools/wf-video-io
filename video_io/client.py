@@ -9,14 +9,13 @@ import subprocess
 from typing import List, Dict
 import logging
 
-from auth0.v3.management.users import Users
-from auth0.v3.management.clients import Clients
 from auth0.v3.authentication import GetToken
 from cachetools.func import ttl_cache
-from jose import jwt
 import jmespath
 import requests
-from tenacity import retry, wait_random, stop_after_attempt
+from requests.adapters import HTTPAdapter
+
+from video_io.log_retry import LogRetry
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +111,22 @@ class VideoStorageClient:
                 client_id=client_id,
                 client_secret=client_secret
             )
+        self.request_session = self.init_request_session()
+
+    @staticmethod
+    def init_request_session():
+        retry_strategy = LogRetry(
+            total=6,
+            status_forcelist=[429, 500, 502, 503, 504],
+            method_whitelist=["HEAD", "GET", "OPTIONS"],
+            backoff_factor=0.5
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        request_session = requests.Session()
+        request_session.mount("https://", adapter)
+        request_session.mount("http://", adapter)
+        return request_session
+
 
     async def get_videos(self, environment_id, start_date, end_date, camera_id=None, destination=None):
         if destination is None:
@@ -136,13 +151,21 @@ class VideoStorageClient:
                     "Authorization": f"bearer {self.token}",
                 },
             }
-            response = requests.request(**request)
-            if response.status_code == 200:
-                pp = p.parent
-                if not pp.exists():
-                    pp.mkdir(parents=True, exist_ok=True)
-                p.write_bytes(response.content)
-            logger.info('Video file %s finished downloading', path)
+            try:
+                response = self.request_session.request(**request)
+                response.raise_for_status()
+                if response.status_code == 200:
+                    pp = p.parent
+                    if not pp.exists():
+                        pp.mkdir(parents=True, exist_ok=True)
+                    p.write_bytes(response.content)
+                logger.info('Video file %s finished downloading', path)
+            except requests.exceptions.HTTPError as e:
+                logger.error('Failing fetching video file %s with HTTP error code %s', path, e.response.status_code)
+                raise e
+            except requests.exceptions.RequestException as e:
+                logger.error('Failing fetching video file %s with exception %s', path, e)
+                raise e
         else:
             logger.info('Video file %s already exists', path)
 
@@ -171,12 +194,18 @@ class VideoStorageClient:
                 "limit": limit,
             }
         }
-        response = requests.request(**request)
-        if response.status_code == 200:
-            data = response.json()
-            return data
-        raise RequestError(response)
-
+        try:
+            response = requests.request(**request)
+            response.raise_for_status()
+            if response.status_code == 200:
+                data = response.json()
+                return data
+        except requests.exceptions.HTTPError as e:
+            logger.error('Failing fetching video metadata for %s from %s to %s with HTTP error code %s', environment_id, start_date, end_date, e.response.status_code)
+            raise e
+        except requests.exceptions.RequestException as e:
+            logger.error('Failing fetching video metadata for %s from %s to %s with exception %s', environment_id, start_date, end_date, e)
+            raise e
 
     async def upload_video(self, path, local_cache_directory=None):
         if local_cache_directory is None:
@@ -186,11 +215,10 @@ class VideoStorageClient:
         if ptype == "file":
             file_details["path"] = full_path
             file_details["filepath"] = full_path[len(local_cache_directory):]
-            resp =  await self.upload_videos([file_details])
+            resp = await self.upload_videos([file_details])
             return resp[0]
         return {"error": "invalid path. doesn't match pattern [environment_id]/[camera_id]/[year]/[month]/[day]/[hour]/[min]-[second].mp4"}
 
-    @retry(wait=wait_random(min=1, max=5), stop=stop_after_attempt(7))
     async def upload_videos(self, file_details: List[Dict]):
         request = {
             "method": "POST",
@@ -219,15 +247,21 @@ class VideoStorageClient:
         results = []
         request["files"] = files
         request["data"] = {"videos": json.dumps(videos)}
-        request = requests.Request(**request)
-        r = request.prepare()
-        s = requests.Session()
-        response = s.send(r)
-        for i, vr in enumerate(response.json()):
-            results.append({"path": videos[i]['meta']['path'], "uploaded": True, "id": vr["id"], "disposition": "ok" if "disposition" not in vr else vr["disposition"]})
-        return results
 
-    @retry(wait=wait_random(min=1, max=5), stop=stop_after_attempt(7))
+        try:
+            request = requests.Request(**request)
+            r = request.prepare()
+            response = self.request_session.send(r)
+            for i, vr in enumerate(response.json()):
+                results.append({"path": videos[i]['meta']['path'], "uploaded": True, "id": vr["id"], "disposition": "ok" if "disposition" not in vr else vr["disposition"]})
+            return results
+        except requests.exceptions.HTTPError as e:
+            logger.error('Failing uploading videos %s with HTTP error code %s', file_details, e.response.status_code)
+            raise e
+        except requests.exceptions.RequestException as e:
+            logger.error('Failing uploading videos %s with exception %s', file_details, e)
+            raise e
+
     async def video_existence_check(self, paths: List[str]):
         request = {
             "method": "POST",
@@ -237,15 +271,20 @@ class VideoStorageClient:
             },
             "json": paths,
         }
-        r = requests.Request(**request).prepare()
-        s = requests.Session()
-        response = s.send(r)
         try:
-            return response.json()
-        except Exception as e:
-            print(response.text)
-            return [{"err": "response error", "path": p, "exists": False} for p in paths]
-
+            r = requests.Request(**request).prepare()
+            response = self.request_session.send(r)
+            try:
+                return response.json()
+            except Exception as e:
+                print(response.text)
+                return [{"err": "response error", "path": p, "exists": False} for p in paths]
+        except requests.exceptions.HTTPError as e:
+            logger.error('Failing validating video existence %s with HTTP error code %s', paths, e.response.status_code)
+            raise e
+        except requests.exceptions.RequestException as e:
+            logger.error('Failing validating video existence %s exception %s', paths, e)
+            raise e
 
     async def upload_videos_in(
         self,

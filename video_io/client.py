@@ -118,7 +118,7 @@ class VideoStorageClient:
         retry_strategy = LogRetry(
             total=6,
             status_forcelist=[429, 500, 502, 503, 504],
-            method_whitelist=["HEAD", "GET", "OPTIONS"],
+            method_whitelist=["HEAD", "GET", "OPTIONS", "POST"],
             backoff_factor=0.5
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)

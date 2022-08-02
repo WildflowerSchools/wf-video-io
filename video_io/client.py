@@ -14,6 +14,7 @@ from cachetools.func import ttl_cache
 import jmespath
 import requests
 from requests.adapters import HTTPAdapter
+from tenacity import retry, wait_random, stop_after_attempt
 
 from video_io.log_retry import LogRetry
 
@@ -32,6 +33,7 @@ class UnableToAuthenticate(Exception):
     pass
 
 @ttl_cache(ttl=60 * 60 * 4)
+@retry(wait=wait_random(min=1, max=3), stop=stop_after_attempt(7))
 def client_token(auth_domain, audience, client_id=None, client_secret=None):
     get_token = GetToken(auth_domain, timeout=10)
     token = get_token.client_credentials(
@@ -41,6 +43,7 @@ def client_token(auth_domain, audience, client_id=None, client_secret=None):
     )
     api_token = token['access_token']
     return api_token
+
 
 @ttl_cache(ttl=60 * 60 * 4)
 def get_video_file_details(path):

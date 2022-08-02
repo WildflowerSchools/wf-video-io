@@ -154,11 +154,11 @@ class VideoStorageClient:
             try:
                 response = self.request_session.request(**request)
                 response.raise_for_status()
-                if response.status_code == 200:
-                    pp = p.parent
-                    if not pp.exists():
-                        pp.mkdir(parents=True, exist_ok=True)
-                    p.write_bytes(response.content)
+
+                pp = p.parent
+                if not pp.exists():
+                    pp.mkdir(parents=True, exist_ok=True)
+                p.write_bytes(response.content)
                 logger.info('Video file %s finished downloading', path)
             except requests.exceptions.HTTPError as e:
                 logger.error('Failing fetching video file %s with HTTP error code %s', path, e.response.status_code)
@@ -197,9 +197,9 @@ class VideoStorageClient:
         try:
             response = requests.request(**request)
             response.raise_for_status()
-            if response.status_code == 200:
-                data = response.json()
-                return data
+
+            data = response.json()
+            return data
         except requests.exceptions.HTTPError as e:
             logger.error('Failing fetching video metadata for %s from %s to %s with HTTP error code %s', environment_id, start_date, end_date, e.response.status_code)
             raise e

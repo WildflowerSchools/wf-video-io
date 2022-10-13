@@ -1,95 +1,24 @@
-import video_io.config
 import asyncio
 import concurrent.futures
+from io import BytesIO
 import json
+import logging
 import os
 from pathlib import Path
-import re
-import subprocess
 from typing import List, Dict
-import logging
 
-from auth0.v3.authentication import GetToken
-from cachetools.func import ttl_cache
-import jmespath
 import requests
 from requests.adapters import HTTPAdapter
-from tenacity import retry, wait_random, stop_after_attempt
+import yaml
 
+import video_io.config
 from video_io.log_retry import LogRetry
+from video_io.client.errors import SyncError
+from video_io.client.utils import client_token, parse_path, get_video_file_details, chunks, FPS_PATH
+
 
 logger = logging.getLogger(__name__)
 
-class SyncError(Exception):
-    pass
-
-class RequestError(Exception):
-
-    def __init__(self, response):
-        super().__init__(f"unexpected api response - {response.status_code}")
-        self.response = response
-
-class UnableToAuthenticate(Exception):
-    pass
-
-@ttl_cache(ttl=60 * 60 * 4)
-@retry(wait=wait_random(min=1, max=3), stop=stop_after_attempt(7))
-def client_token(auth_domain, audience, client_id=None, client_secret=None):
-    get_token = GetToken(auth_domain, timeout=10)
-    token = get_token.client_credentials(
-        client_id,
-        client_secret,
-        audience
-    )
-    api_token = token['access_token']
-    return api_token
-
-
-@ttl_cache(ttl=60 * 60 * 4)
-def get_video_file_details(path):
-    ffprobe_out = subprocess.run([
-        "ffprobe",
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration:stream=nb_read_frames,r_frame_rate,codec_type",
-        "-count_frames",
-        "-of",
-        "json=compact=1",
-        path,
-    ], capture_output=True)
-    return json.loads(ffprobe_out.stdout)
-
-CACHE_PATH_FILE = re.compile('^(?P<environment_id>[a-fA-F0-9-]*)/(?P<camera_id>[a-fA-F0-9-]*)/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/(?P<hour>[0-9]{2})/(?P<file>.*)$')
-CACHE_PATH_HOUR = re.compile('^(?P<environment_id>[a-fA-F0-9-]*)/(?P<camera_id>[a-fA-F0-9-]*)/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/(?P<hour>[0-9]{2})$')
-CACHE_PATH_DAY = re.compile('^(?P<environment_id>[a-fA-F0-9-]*)/(?P<camera_id>[a-fA-F0-9-]*)/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})$')
-CACHE_PATH_MONTH = re.compile('^(?P<environment_id>[a-fA-F0-9-]*)/(?P<camera_id>[a-fA-F0-9-]*)/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})$')
-CACHE_PATH_YEAR = re.compile('^(?P<environment_id>[a-fA-F0-9-]*)/(?P<camera_id>[a-fA-F0-9-]*)/(?P<year>[0-9]{4})$')
-CACHE_PATH_CAM = re.compile('^(?P<environment_id>[a-fA-F0-9-]*)/(?P<camera_id>[a-fA-F0-9-]*)$')
-
-FPS_PATH = jmespath.compile("streams[?codec_type=='video'].r_frame_rate")
-
-def parse_path(path: str) -> (str, dict):
-    result = ('none', None)
-    for name, pattern in [
-        ('file', CACHE_PATH_FILE,),
-        ('hour', CACHE_PATH_HOUR,),
-        ('day', CACHE_PATH_DAY,),
-        ('month', CACHE_PATH_MONTH,),
-        ('year', CACHE_PATH_YEAR,),
-        ('camera', CACHE_PATH_CAM,),
-    ]:
-        match = pattern.match(path)
-        if match:
-            result = (name, match.groupdict())
-            continue
-    return result
-
-
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
 
 class VideoStorageClient:
 
@@ -134,22 +63,24 @@ class VideoStorageClient:
     async def get_videos(self, environment_id, start_date, end_date, camera_id=None, destination=None):
         if destination is None:
             destination=self.CACHE_DIRECTORY
-        os.makedirs(destination, exist_ok=True)
+        if not hasattr(destination, "mkdir"):
+            destination = Path(destination)
+        destination.mkdir(parents=True, exist_ok=True)
         meta = self.get_videos_metadata_paginated(environment_id, start_date, end_date, camera_id)
         futures = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as e:
             async for vid_meta in meta:
                 f = e.submit(asyncio.run, self.get_video(path=vid_meta["meta"]["path"], destination=destination))
                 futures.append(f)
-        res = [r for r in concurrent.futures.as_completed(futures)]
+        list(concurrent.futures.as_completed(futures))
 
     async def get_video(self, path, destination):
-        p = Path(destination).joinpath(path)
+        p = Path(destination) / path
         if not p.is_file():
             logger.info('Downloading video file %s', path)
             request = {
                 "method": "GET",
-                "url": f'{self.URL}/video/{path}',
+                "url": f'{self.URL}/video/{path}/data',
                 "headers": {
                     "Authorization": f"bearer {self.token}",
                 },
@@ -195,7 +126,8 @@ class VideoStorageClient:
                 "end_date": end_date,
                 "skip": skip,
                 "limit": limit,
-            }
+            },
+            "timeout": 120,
         }
         try:
             response = requests.request(**request)
@@ -213,14 +145,42 @@ class VideoStorageClient:
     async def upload_video(self, path, local_cache_directory=None):
         if local_cache_directory is None:
             local_cache_directory=self.CACHE_DIRECTORY
-        full_path = os.path.join(local_cache_directory, path)
+        full_path = local_cache_directory / path
         ptype, file_details = parse_path(path)
         if ptype == "file":
             file_details["path"] = full_path
-            file_details["filepath"] = full_path[len(local_cache_directory):]
+            file_details["filepath"] = path
             resp = await self.upload_videos([file_details])
             return resp[0]
         return {"error": "invalid path. doesn't match pattern [environment_id]/[camera_id]/[year]/[month]/[day]/[hour]/[min]-[second].mp4"}
+
+    def prepare_video(self, file_details: Dict) -> (Dict, BytesIO):
+        path = file_details["path"]
+        video_properties = get_video_file_details(path)
+        if file_details["ptype"] == "file":
+            ts = f"{file_details['year']}-{file_details['month']}-{file_details['day']}T{file_details['hour']}:{file_details['file'][0:2]}:{file_details['file'][3:5]}.0000"
+            meta = {
+                "timestamp": ts,
+                "meta": {
+                    "environment_id": file_details["environment_id"],
+                    "camera_id": file_details["camera_id"],
+                    "duration_seconds": video_properties["format"]["duration"],
+                    "fps": eval(FPS_PATH.search(video_properties)[0]),  # pylint: disable=W0123
+                    "path": file_details["filepath"],
+                },
+            }
+        else:
+            p = Path(f"{path}.meta")
+            if not p.exists():
+                logger.error('missing meta file for video %s', path)
+                return {"error": f"meta is missing for {path}"}
+            with p.open('r', encoding="utf8") as fp:
+                meta = yaml.safe_load(fp.read())
+        return (
+            meta,
+            open(path, 'rb'),  # pylint: disable=R1732
+        )
+
 
     async def upload_videos(self, file_details: List[Dict]):
         request = {
@@ -233,24 +193,12 @@ class VideoStorageClient:
         files = []
         videos = []
         for details in file_details:
-            path = details["path"]
-            files.append(("files", open(path, 'rb'), ))
-            video_properties = get_video_file_details(path)
-            videos.append(dict(
-                timestamp=f"{details['year']}-{details['month']}-{details['day']}T{details['hour']}:{details['file'][0:2]}:{details['file'][3:5]}.0000",
-                meta=dict(
-                    environment_id=details["environment_id"],
-                    assignment_id=None,
-                    camera_id=details["camera_id"],
-                    duration_seconds=video_properties["format"]["duration"],
-                    fps=eval(FPS_PATH.search(video_properties)[0]),
-                    path=details["filepath"],
-                ),
-            ))
+            meta, fileio = self.prepare_video(details)
+            files.append(("files", fileio, ))
+            videos.append(meta)
         results = []
         request["files"] = files
         request["data"] = {"videos": json.dumps(videos)}
-
         try:
             request = requests.Request(**request)
             r = request.prepare()
@@ -279,7 +227,7 @@ class VideoStorageClient:
             response = self.request_session.send(r)
             try:
                 return response.json()
-            except Exception as e:
+            except Exception:
                 print(response.text)
                 return [{"err": "response error", "path": p, "exists": False} for p in paths]
         except requests.exceptions.HTTPError as e:
@@ -297,31 +245,40 @@ class VideoStorageClient:
         max_workers=video_io.config.MAX_SYNC_WORKERS
     ):
         if local_cache_directory is None:
-            video_io = self.CACHE_DIRECTORY
-        t, details = parse_path(path[:-1] if path[-1] == '/' else path)
+            local_cache_directory = self.CACHE_DIRECTORY
+        local_cache_directory = Path(local_cache_directory)
+        strpath = str(path)
+        t, details = parse_path(strpath[:-1] if strpath[-1] == '/' else strpath)
+        logging.info("ptype is %s", t)
         if details:
-            if t == "file":
+            if t in ("file", "fileV2"):
                 raise SyncError("didn't expect file, expected directory, try `upload_video`")
             if t == "year":
                 raise SyncError("cannot sync a year of videos, try limiting to a day")
             if t == "month":
+                # additional check for this being a v2 directory
                 raise SyncError("cannot sync a month of videos, try limiting to a day")
+            if t == "environment":
+                logger.warning("syncing an entire environment is crazy, I hope you know what you are doing.")
             files_found = []
-            for root, _, files in os.walk(os.path.join(local_cache_directory, path)):
+            for root, _, files in os.walk(local_cache_directory / path):
                 for file in files:
-                    full_path = os.path.join(root, file)
-                    ptype, file_details = parse_path(full_path[len(local_cache_directory)+1:])
-                    if ptype == "file":
+                    full_path = Path(os.path.join(root, file))
+                    ptype, file_details = parse_path(str(full_path.relative_to(local_cache_directory)))
+                    if ptype in ("file", "fileV2") and full_path.suffix in [".h264", ".mp4"]:
+                        file_details["ptype"] = ptype
                         file_details["path"] = full_path
-                        file_details["filepath"] = full_path[len(local_cache_directory)+1:]
+                        file_details["filepath"] = path
                         files_found.append(file_details)
             details["files_found"] = len(files_found)
             details["files_uploaded"] = 0
             details["details"] = []
+            logger.debug("found %s files to be uploaded", len(files_found))
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 results = executor.map(self.upload_videos, chunks(files_found, batch_size))
-                for future in results:
-                    result = await future
+                logger.debug(results)
+                for result in await asyncio.gather(*results):
+                    logger.debug(result)
                     for data in result:
                         if data["uploaded"]:
                             details["files_uploaded"] += 1

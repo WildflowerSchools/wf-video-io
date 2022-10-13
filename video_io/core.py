@@ -1,18 +1,19 @@
-import video_io.config
-import video_io.client
+import asyncio
 import concurrent.futures
 import datetime
 import logging
 import math
-import asyncio
 import os
-from pathlib import Path
 
 import cv_utils
 import cv2 as cv
 import honeycomb_io
 
+import video_io.config
+import video_io.client
+
 logger = logging.getLogger(__name__)
+
 
 def fetch_videos(
     start=None,
@@ -209,6 +210,7 @@ def fetch_images(
         image_filename_extension=image_filename_extension,
         local_video_directory=local_video_directory,
         video_filename_extension=video_filename_extension,
+        max_workers=max_workers,
         video_storage_url=video_storage_url,
         video_storage_auth_domain=video_storage_auth_domain,
         video_storage_audience=video_storage_audience,
@@ -376,8 +378,8 @@ def fetch_video_metadata(
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret
     ))
-    video_metadata = list()
-    logger.info('Parsing {} returned video metadata'.format(len(result)))
+    video_metadata = []
+    logger.info('Parsing %s returned video metadata', len(result))
     for datum in result:
         meta = datum.get('meta')
         video_metadata.append({
@@ -411,7 +413,7 @@ async def _fetch_video_metadata(
         client_secret=video_storage_client_secret
 
     )
-    result = list()
+    result = []
     if video_timestamps_utc is None:
         if camera_device_ids is None:
             logger.info('Fetching video metadata for all cameras in specified environment')
@@ -425,7 +427,7 @@ async def _fetch_video_metadata(
         else:
             logger.info('Fetching video metadata for specific cameras')
             for camera_id in camera_device_ids:
-                logger.info('Fetching video metadata for camera device ID {}'.format(camera_id))
+                logger.info('Fetching video metadata for camera device ID %s', camera_id)
                 video_metadata_pages = video_client.get_videos_metadata_paginated(
                     environment_id=environment_id,
                     start_date=video_timestamp_min_utc,
@@ -436,7 +438,7 @@ async def _fetch_video_metadata(
                     result.append(video_metadata_page)
     else:
         for video_timestamp_utc in video_timestamps_utc:
-            logger.info('Fetching video metadata for video timestamp {}'.format(video_timestamp_utc.isoformat()))
+            logger.info('Fetching video metadata for video timestamp %s', video_timestamp_utc.isoformat())
             if camera_device_ids is None:
                 logger.info('Fetching video metadata for all cameras in specified environment')
                 video_metadata_pages = video_client.get_videos_metadata_paginated(
@@ -449,7 +451,7 @@ async def _fetch_video_metadata(
             else:
                 logger.info('Fetching video metadata for specific cameras')
                 for camera_id in camera_device_ids:
-                    logger.info('Fetching video metadata for camera device ID {}'.format(camera_id))
+                    logger.info('Fetching video metadata for camera device ID %s', camera_id)
                     video_metadata_pages = video_client.get_videos_metadata_paginated(
                         environment_id=environment_id,
                         start_date=video_timestamp_utc,
@@ -539,7 +541,7 @@ async def _download_video_files(
             f = e.submit(asyncio.run, video_client.get_video(path=video_metadatum['path'], destination=local_video_directory))
             video_metadatum['video_local_path'] = os.path.join(local_video_directory, video_metadatum['path'])
             futures.append(f)
-    _ = [r for r in concurrent.futures.as_completed(futures)]
+    list(concurrent.futures.as_completed(futures))
     return video_metadata
 
 def fetch_image_metadata(
@@ -605,14 +607,14 @@ def fetch_image_metadata(
     Returns:
         (list of dict): Metadata for images that match search parameters
     """
-    image_metadata_by_video_timestamp = dict()
+    image_metadata_by_video_timestamp = {}
     for image_timestamp in image_timestamps:
         image_timestamp = image_timestamp.astimezone(datetime.timezone.utc)
         timestamp_floor = image_timestamp.replace(second=0, microsecond=0)
         video_timestamp = timestamp_floor + math.floor((image_timestamp - timestamp_floor)/datetime.timedelta(seconds=10))*datetime.timedelta(seconds=10)
         frame_number = round((image_timestamp - video_timestamp)/datetime.timedelta(milliseconds=100))
-        if video_timestamp not in image_metadata_by_video_timestamp.keys():
-            image_metadata_by_video_timestamp[video_timestamp] = list()
+        if video_timestamp not in image_metadata_by_video_timestamp:
+            image_metadata_by_video_timestamp[video_timestamp] = []
         image_metadata_by_video_timestamp[video_timestamp].append({
             'image_timestamp': image_timestamp,
             'frame_number': frame_number
@@ -640,7 +642,7 @@ def fetch_image_metadata(
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret
     )
-    image_metadata = list()
+    image_metadata = []
     for video in video_metadata:
         for image in image_metadata_by_video_timestamp[video['video_timestamp']]:
             image_metadata.append({**video, **image})
@@ -704,7 +706,7 @@ def download_image_files(
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret
     )
-    image_metadata_with_local_paths = list()
+    image_metadata_with_local_paths = []
     for image in image_metadata_with_local_video_paths:
         download_path = image_local_path(
             local_image_directory=local_image_directory,
@@ -718,9 +720,9 @@ def download_image_files(
             video_input = cv_utils.VideoInput(image.get('video_local_path'))
             image_data = video_input.get_frame_by_frame_number(image.get('frame_number'))
             os.makedirs(os.path.dirname(download_path), exist_ok=True)
-            cv.imwrite(download_path, image_data)
+            cv.imwrite(download_path, image_data) # pylint: disable=E1101
         else:
-            logger.info('File {} already exists'.format(download_path))
+            logger.info('File %s already exists', download_path)
         image['image_local_path'] = download_path
         image_metadata_with_local_paths.append(image)
     return image_metadata_with_local_paths
@@ -737,11 +739,7 @@ def image_local_path(
         local_image_directory,
         environment_id,
         device_id,
-        '{}_{:03}.{}'.format(
-            video_timestamp.strftime("%Y/%m/%d/%H-%M-%S"),
-            frame_number,
-            image_filename_extension
-        )
+        f'{video_timestamp.strftime("%Y/%m/%d/%H-%M-%S")}_{frame_number:03}.{image_filename_extension}'
     )
 
 def video_timestamp_min(start):

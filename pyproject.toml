@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "wf-video-io"
+version = "3.2.0"
+description = "Library for working with video files and interacting with the wildflower video-service"
+authors = ["Paul J DeCoursey <paul@decoursey.net>, Theodore Quinn <ted.quinn@wildflowerschools.org>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "wf_video_io"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+jmespath = "^1.0.1"
+tenacity = "^8.1.0"
+urllib3 = "^1.26.12"
+wf-honeycomb-io = ">=2.0.0"
+wf-cv-utils = ">=3.4.0"
+opencv-python = ">=4.6.0"
+wf-fastapi-auth0 = ">=1.0"
+
+
+[tool.poetry.group.dev.dependencies]
+behave = "^1.2.6"
+pymongo = ">=4.0.1"
+auth0-python = "^3.23.1"
+cachetools = "^5.2.0"
+python-jose = "^3.3.0"
+pylint = "^2.15.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

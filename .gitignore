@@ -29,3 +29,8 @@ venv.bak/
 .DS_Store
 .python-version
 migrate/
+
+dahlia/
+videos/
+
+*.ipynb

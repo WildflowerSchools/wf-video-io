@@ -1,6 +1,8 @@
-import os
-import multiprocessing
 import datetime
+import multiprocessing
+import os
+from pathlib import Path
+
 
 VIDEO_DURATION = datetime.timedelta(seconds=10)
 
@@ -20,7 +22,7 @@ HONEYCOMB_AUDIENCE = os.environ.get('HONEYCOMB_AUDIENCE', os.environ.get('API_AU
 HONEYCOMB_CLIENT_ID = os.environ.get('HONEYCOMB_CLIENT_ID', os.environ.get('AUTH0_CLIENT_ID'))
 HONEYCOMB_CLIENT_SECRET = os.environ.get('HONEYCOMB_CLIENT_SECRET', os.environ.get('AUTH0_CLIENT_SECRET'))
 
-VIDEO_STORAGE_LOCAL_CACHE_DIRECTORY = os.environ.get('VIDEO_STORAGE_LOCAL_CACHE_DIRECTORY', '/data')
+VIDEO_STORAGE_LOCAL_CACHE_DIRECTORY = Path(os.environ.get('VIDEO_STORAGE_LOCAL_CACHE_DIRECTORY', '/data'))
 
 SYNC_BATCH_SIZE = 4
 MAX_SYNC_WORKERS = os.environ.get('MAX_SYNC_WORKERS', os.environ.get('MAX_WORKERS', multiprocessing.cpu_count() - 1))

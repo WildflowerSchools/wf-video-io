@@ -17,6 +17,10 @@ from video_io.client.errors import SyncError
 from video_io.client.utils import client_token, parse_path, get_video_file_details, chunks, FPS_PATH
 
 
+parse_path("06403ab8-8300-456f-802a-1f4228f69042/2022/10/25/16/03-50.mp4")
+
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -148,6 +152,7 @@ class VideoStorageClient:
         full_path = local_cache_directory / path
         ptype, file_details = parse_path(path)
         if ptype == "file":
+            file_details["ptype"] = ptype
             file_details["path"] = full_path
             file_details["filepath"] = path
             resp = await self.upload_videos([file_details])
@@ -256,7 +261,6 @@ class VideoStorageClient:
             if t == "year":
                 raise SyncError("cannot sync a year of videos, try limiting to a day")
             if t == "month":
-                # additional check for this being a v2 directory
                 raise SyncError("cannot sync a month of videos, try limiting to a day")
             if t == "environment":
                 logger.warning("syncing an entire environment is crazy, I hope you know what you are doing.")

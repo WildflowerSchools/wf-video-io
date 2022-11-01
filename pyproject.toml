@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "wf-video-io"
-version = "3.2.0"
+version = "3.2.1"
 description = "Library for working with video files and interacting with the wildflower video-service"
-authors = ["Paul J DeCoursey <paul@decoursey.net>, Theodore Quinn <ted.quinn@wildflowerschools.org>"]
+authors = ["Paul J DeCoursey <paul@decoursey.net>", "Theodore Quinn <ted.quinn@wildflowerschools.org>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "wf_video_io"}]
+packages = [{include = "video_io"}]
 
 [tool.poetry.dependencies]
 python = "^3.8"

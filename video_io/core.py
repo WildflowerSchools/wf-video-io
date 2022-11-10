@@ -820,9 +820,6 @@ def fetch_concatenated_video(
         (dataframe): Dataframe object include "environment_id", "camera_assignment_id", "camera_device_id", and the concatenated video files' "file_path"
 
     """
-    if camera_names is None:
-        camera_names = []
-
     os.makedirs(output_directory, exist_ok=True)
 
     video_metadata = fetch_video_metadata(

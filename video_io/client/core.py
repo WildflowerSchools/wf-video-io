@@ -78,9 +78,9 @@ class VideoStorageClient:
                 futures.append(f)
         list(concurrent.futures.as_completed(futures))
 
-    async def get_video(self, path, destination):
+    async def get_video(self, path: str, destination: str, overwrite: bool = False):
         p = Path(destination) / path
-        if not p.is_file():
+        if not p.is_file() or overwrite:
             logger.info('Downloading video file %s', path)
             request = {
                 "method": "GET",

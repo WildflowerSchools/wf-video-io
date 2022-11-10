@@ -3,6 +3,7 @@ name = "wf-video-io"
 version = "3.2.1"
 description = "Library for working with video files and interacting with the wildflower video-service"
 authors = ["Paul J DeCoursey <paul@decoursey.net>", "Theodore Quinn <ted.quinn@wildflowerschools.org>"]
+maintainers = ["Paul J DeCoursey <paul@decoursey.net>", "Theodore Quinn <ted.quinn@wildflowerschools.org>", "Benjamin Jaffe-Talberg <ben.talberg@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{include = "video_io"}]
@@ -16,7 +17,8 @@ wf-honeycomb-io = ">=2.0.0"
 wf-cv-utils = ">=3.4.0"
 opencv-python = ">=4.6.0"
 wf-fastapi-auth0 = ">=1.0"
-
+pyyaml = "^6.0"
+ffmpeg-python = "^0.2.0"
 
 [tool.poetry.group.dev.dependencies]
 behave = "^1.2.6"
@@ -25,6 +27,7 @@ auth0-python = "^3.23.1"
 cachetools = "^5.2.0"
 python-jose = "^3.3.0"
 pylint = "^2.15.4"
+pytest = "^7.2.0"
 
 [build-system]
 requires = ["poetry-core"]

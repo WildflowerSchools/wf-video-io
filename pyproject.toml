@@ -1,6 +1,6 @@
 [project]
 name = "wf-video-io"
-version = "3.2.1"
+dynamic = ["version"]
 
 [tool.poetry]
 name = "wf-video-io"

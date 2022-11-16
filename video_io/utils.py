@@ -4,7 +4,7 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Optional
+from typing import List, Optional
 
 import ffmpeg
 import pandas as pd
@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 def concat_videos(
-        video_metadata: list[dict],
+        video_metadata: List[dict],
         start: datetime,
         end: datetime,
         output_directory: str,
-        overwrite: bool = False) -> Optional[list]:
+        overwrite: bool = False) -> Optional[List]:
     """
     Use the output of core.download_video_files() to concatenate videos for each camera into a single video file.
 

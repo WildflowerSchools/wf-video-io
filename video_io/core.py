@@ -6,7 +6,7 @@ import math
 from multiprocessing import cpu_count
 import os
 import tempfile
-from typing import Optional
+from typing import List, Optional
 
 import cv_utils
 import cv2 as cv
@@ -794,7 +794,7 @@ def fetch_concatenated_video(
         start: datetime,
         end: datetime,
         output_directory: str,
-        camera_names: Optional[list[str]] = None,
+        camera_names: Optional[List[str]] = None,
         workers: int = cpu_count() - 1,
         video_snippet_directory: str = None,
         overwrite_video_snippets: bool = False,
@@ -810,7 +810,7 @@ def fetch_concatenated_video(
         start (datetime): Start of time period
         end (datetime): End of time period
         output_directory (str): Directory to write concatenated video files to. Video file names are written as "{environment_id}_{camera_device_id}_{start.strftime('%m%d%YT%H%M%S%f%z')}_{end.strftime('%m%d%YT%H%M%S%f%z')}.mp4"
-        camera_names (list[str]): Filter cameras to a specific subset (default value is None which means to filter and concatenated video will be generated for all cameras)
+        camera_names (List[str]): Filter cameras to a specific subset (default value is None which means to filter and concatenated video will be generated for all cameras)
         workers (int): Number of processes to be used to download video files
         video_snippet_directory (str): Directory to store video snippets. If no directory is provided, videos will be downloaded to the operating systems temp directory and destroyed once the function finishes
         overwrite_video_snippets (bool): If set, any cached video snippets will be overwritten

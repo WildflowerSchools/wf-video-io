@@ -1,6 +1,7 @@
 import datetime
 import errno
 import logging
+import math
 import os
 import shutil
 import tempfile
@@ -172,3 +173,78 @@ def trim_video(
         return False
 
     return True
+
+def generate_video_mosaic(
+        video_inputs:List[str],
+        output_directory: Optional[str] = None,
+        output_path: Optional[str] = None
+):
+    width=None
+    height=None
+
+    if output_directory is None and output_path is None:
+        raise ValueError("output_directory and output_path cannot both be None")
+
+    if len(video_inputs) <= 1:
+        raise ValueError("Number of video inputs must be two or greater")
+
+    _output_directory = output_directory
+    _output_path = output_path
+    if output_path is not None:
+        _output_directory = os.path.dirname(output_path)
+    else:
+        _output_path = f"{_output_directory}/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}.mp4"
+
+    os.makedirs(_output_directory, exist_ok=True)
+    ffmpeg_inputs = []
+    for f in video_inputs:
+        if not os.path.exists(f):
+            err = f"'{f}' does not exist, unable to trim video. Raising FileNotFoundError exception."
+            logger.error(err)
+            raise(FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), err))
+        ffmpeg_inputs.append(ffmpeg.input(f))
+
+        if width is None or height is None:
+            v = VideoReader(f)
+            width = int(v.width())
+            height = int(v.height())
+
+    def get_grid(n):
+        if n <= 0:
+            return []
+
+        row_width = math.ceil(math.sqrt(n))
+        shape = []
+        for ii in range(row_width, n+1, row_width):
+            shape.append(row_width)
+
+        if n > sum(shape):
+            shape.append(n - sum(shape))
+
+        return shape
+
+    grid = get_grid(len(video_inputs))
+
+    layout=[]
+    ideal_shape = max(grid)
+    for row, num_cols in enumerate(grid):
+        for col in range(num_cols):
+            offset = int((ideal_shape - num_cols) * width * 0.5)
+            layout.append(f"{offset + (col * width)}_{row * height}")
+
+    vout = ffmpeg.filter(
+        list(map(lambda v: v.video, ffmpeg_inputs)),
+        "xstack",
+        inputs=len(ffmpeg_inputs),
+        layout="|".join(layout),
+        # fill="black[out]"
+    )
+
+    ffmpeg.output(vout,
+                  _output_path,
+                  pix_fmt='yuv420p',
+                  vcodec='libx264') \
+        .overwrite_output() \
+        .run()
+
+    return _output_path

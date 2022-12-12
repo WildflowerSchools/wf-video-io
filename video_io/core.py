@@ -10,13 +10,12 @@ from typing import List, Optional
 
 import cv_utils
 import cv2 as cv
-import ffmpeg
 import honeycomb_io
 import pandas as pd
 
 import video_io.config
 import video_io.client
-from video_io.utils import trim_video, concat_videos
+from video_io.utils import concat_videos, generate_video_mosaic
 
 logger = logging.getLogger(__name__)
 
@@ -855,3 +854,14 @@ def fetch_concatenated_video(
         )
 
     return pd.DataFrame(concatenated_video_output)
+
+def combine_videos(
+    video_inputs:List[str],
+    output_directory: Optional[str] = None,
+    output_path: Optional[str] = None
+):
+    return generate_video_mosaic(
+        video_inputs=video_inputs,
+        output_directory=output_directory,
+        output_path=output_path
+    )

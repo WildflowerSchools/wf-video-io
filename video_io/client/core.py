@@ -289,3 +289,4 @@ class VideoStorageClient:
                         details["details"].append(data)
             return details
         raise SyncError("path {path} was not parsable")
+

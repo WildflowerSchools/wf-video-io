@@ -148,5 +148,57 @@ def test_trim_video_overwrite():
         assert video_reader.duration() == 0.1
 
 
-def test_concat_video():
-    pass
+def test_mosaic():
+    input_path = f"{pathlib.Path(__file__).parent.resolve()}/videos/cat-10-seconds-fps-10.mp4"
+    input_reader = VideoReader(input_path)
+
+    input_width = input_reader.width()
+    input_height = input_reader.height()
+
+    with tempfile.NamedTemporaryFile(suffix='.mp4') as fp:
+        size = 4
+
+        video_io.utils.generate_video_mosaic(
+            video_inputs=[input_path] * size,
+            output_path=fp.name
+        )
+
+        video_reader = VideoReader(fp.name)
+        assert video_reader.fps() == 10
+        assert video_reader.width() == (input_width * 2)
+        assert video_reader.height() == (input_height * 2)
+
+    with tempfile.NamedTemporaryFile(suffix='.mp4') as fp:
+        size = 1
+
+        with pytest.raises(ValueError):
+            video_io.utils.generate_video_mosaic(
+                video_inputs=[input_path] * size,
+                output_path=fp.name
+            )
+
+    with tempfile.NamedTemporaryFile(suffix='.mp4') as fp:
+        size = 3
+
+        video_io.utils.generate_video_mosaic(
+            video_inputs=[input_path] * size,
+            output_path=fp.name
+        )
+
+        video_reader = VideoReader(fp.name)
+        assert video_reader.fps() == 10
+        assert video_reader.width() == input_width * 2
+        assert video_reader.height() == input_height * 2
+
+    with tempfile.NamedTemporaryFile(suffix='.mp4') as fp:
+        size = 5
+
+        video_io.utils.generate_video_mosaic(
+            video_inputs=[input_path] * size,
+            output_path=fp.name
+        )
+
+        video_reader = VideoReader(fp.name)
+        assert video_reader.fps() == 10
+        assert video_reader.width() == input_width * 3
+        assert video_reader.height() == input_height * 2

@@ -17,3 +17,9 @@ class VideoReader:
 
     def duration(self):
         return self.frames() / self.fps()
+
+    def width(self):
+        return self.video.get(cv2.CAP_PROP_FRAME_WIDTH)
+
+    def height(self):
+        return self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)

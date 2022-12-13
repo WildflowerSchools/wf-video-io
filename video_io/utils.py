@@ -42,7 +42,7 @@ def concat_videos(
     concatenated_video_output = []
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        for (environment_id, camera_assignment_id, camera_device_id), df_video_files_by_device in pd.DataFrame(video_metadata).sort_values(by=['device_id', 'video_timestamp']).groupby(['environment_id', 'assignment_id', 'device_id']):
+        for (environment_id, camera_assignment_id, camera_device_id), df_video_files_by_device in pd.DataFrame(video_metadata).sort_values(by=['device_id', 'video_timestamp']).groupby(['environment_id', 'assignment_id', 'device_id'], dropna=False):
             video_output_path = f"{output_directory}/{environment_id}_{camera_device_id}_{start.strftime('%m%d%YT%H%M%S%f%z')}_{end.strftime('%m%d%YT%H%M%S%f%z')}.mp4"
 
             if not os.path.exists(video_output_path) or overwrite:

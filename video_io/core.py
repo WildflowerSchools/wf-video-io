@@ -320,14 +320,17 @@ def fetch_video_metadata(
     logger.info('Parsing %s returned video metadata', len(video_metadata_raw))
     video_metadata = list()
     for datum in video_metadata_raw:
-        meta = datum.get('meta')
+        meta = datum.get('meta', {})
         video_metadata.append({
             'data_id': datum.get('id'),
             'video_timestamp': datetime.datetime.fromisoformat(datum.get('timestamp')),
             'environment_id': meta.get('environment_id'),
             'assignment_id': meta.get('assignment_id'),
             'device_id': meta.get('camera_id'),
-            'path': meta.get('path')
+            'path': meta.get('path'),
+            'duration_seconds': meta.get('duration_seconds'),
+            'fps': meta.get('fps'),
+            'frame_offsets': meta.get('frame_offsets')
         })
     return video_metadata
 

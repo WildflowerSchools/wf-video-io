@@ -3,14 +3,19 @@ import concurrent.futures
 import datetime
 import logging
 import math
+from multiprocessing import cpu_count
 import os
+import tempfile
+from typing import List, Optional
 
 import cv_utils
 import cv2 as cv
 import honeycomb_io
+import pandas as pd
 
 import video_io.config
 import video_io.client
+from video_io.utils import concat_videos, generate_video_mosaic
 
 logger = logging.getLogger(__name__)
 
@@ -471,7 +476,8 @@ def download_video_files(
     video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
-    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
+    overwrite: bool = False,
 ):
     """
     Downloads videos from video service to local directory tree and returns metadata with
@@ -499,6 +505,7 @@ def download_video_files(
         video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
         video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
         video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
+        overwrite (bool): If set to true, any cached video snippets will be overwritten
 
     Returns:
         (list of dict): Metadata for videos with local path information appended
@@ -513,7 +520,8 @@ def download_video_files(
         video_storage_auth_domain=video_storage_auth_domain,
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
-        video_storage_client_secret=video_storage_client_secret
+        video_storage_client_secret=video_storage_client_secret,
+        overwrite=overwrite
     ))
     return video_metadata
 
@@ -525,7 +533,8 @@ async def _download_video_files(
     video_storage_auth_domain,
     video_storage_audience,
     video_storage_client_id,
-    video_storage_client_secret
+    video_storage_client_secret,
+    overwrite: bool = False,
 ):
     video_client = video_io.client.VideoStorageClient(
         token=None,
@@ -538,7 +547,10 @@ async def _download_video_files(
     futures = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as e:
         for video_metadatum in video_metadata:
-            f = e.submit(asyncio.run, video_client.get_video(path=video_metadatum['path'], destination=local_video_directory))
+            f = e.submit(asyncio.run, video_client.get_video(
+                path=video_metadatum['path'],
+                destination=local_video_directory,
+                overwrite=overwrite))
             video_metadatum['video_local_path'] = os.path.join(local_video_directory, video_metadatum['path'])
             futures.append(f)
     list(concurrent.futures.as_completed(futures))
@@ -758,6 +770,7 @@ def video_timestamp_min(start):
         timestamp_min = timestamp_min_naive
     return timestamp_min
 
+
 def video_timestamp_max(end):
     original_tzinfo = end.tzinfo
     if original_tzinfo:
@@ -773,3 +786,82 @@ def video_timestamp_max(end):
     else:
         timestamp_max = timestamp_max_naive
     return timestamp_max
+
+
+def fetch_concatenated_video(
+        environment_name: str,
+        start: datetime,
+        end: datetime,
+        output_directory: str,
+        camera_names: Optional[List[str]] = None,
+        workers: int = cpu_count() - 1,
+        video_snippet_directory: str = None,
+        overwrite_video_snippets: bool = False,
+        overwrite_concatenated_video: bool = False) -> Optional[pd.DataFrame]:
+    """
+    Create concatenated video files for each camera in a particular environment given a provided start and end time.
+
+    Function will download individual video snippets across each camera, concatenate those snippets, and trim the videos
+    to exactly match the provided start and end time.
+
+    Args:
+        environment_name (str): Honeycomb environment name
+        start (datetime): Start of time period
+        end (datetime): End of time period
+        output_directory (str): Directory to write concatenated video files to. Video file names are written as "{environment_id}_{camera_device_id}_{start.strftime('%m%d%YT%H%M%S%f%z')}_{end.strftime('%m%d%YT%H%M%S%f%z')}.mp4"
+        camera_names (List[str]): Filter cameras to a specific subset (default value is None which means to filter and concatenated video will be generated for all cameras)
+        workers (int): Number of processes to be used to download video files
+        video_snippet_directory (str): Directory to store video snippets. If no directory is provided, videos will be downloaded to the operating systems temp directory and destroyed once the function finishes
+        overwrite_video_snippets (bool): If set, any cached video snippets will be overwritten
+        overwrite_concatenated_video (bool): If set, any previously generated concatenated video will be overwritten
+
+    Returns:
+        (dataframe): Dataframe object include "environment_id", "camera_assignment_id", "camera_device_id", and the concatenated video files' "file_path"
+
+    """
+    os.makedirs(output_directory, exist_ok=True)
+
+    video_metadata = fetch_video_metadata(
+        start=start,
+        end=end,
+        environment_name=environment_name,
+        camera_names=camera_names
+    )
+    if video_metadata is None or len(video_metadata) == 0:
+        logger.warning(f"Found 0 videos for {environment_name} between {start} and {end}")
+        return None
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        video_snippet_storage_dir = video_snippet_directory
+        if video_snippet_directory is None:
+            video_snippet_storage_dir = tmp_dir
+        else:
+            os.makedirs(video_snippet_storage_dir, exist_ok=True)
+
+        video_metadata_with_file_paths = download_video_files(
+            video_metadata=video_metadata,
+            local_video_directory=video_snippet_storage_dir,
+            max_workers=workers,
+            overwrite=overwrite_video_snippets
+        )
+
+        concatenated_video_output = concat_videos(
+            video_metadata=video_metadata_with_file_paths,
+            start=start,
+            end=end,
+            output_directory=output_directory,
+            overwrite=overwrite_concatenated_video
+        )
+
+    return pd.DataFrame(concatenated_video_output)
+
+def combine_videos(
+    video_inputs:List[str],
+    output_directory: Optional[str] = None,
+    output_path: Optional[str] = None
+):
+    return generate_video_mosaic(
+        video_inputs=video_inputs,
+        output_directory=output_directory,
+        output_path=output_path
+    )

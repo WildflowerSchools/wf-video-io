@@ -2,6 +2,7 @@ import asyncio
 import concurrent.futures
 from io import BytesIO
 import json
+from json.decoder import JSONDecodeError
 import logging
 import os
 from pathlib import Path
@@ -211,6 +212,8 @@ class VideoStorageClient:
             for i, vr in enumerate(response.json()):
                 results.append({"path": videos[i]['meta']['path'], "uploaded": True, "id": vr["id"], "disposition": "ok" if "disposition" not in vr else vr["disposition"]})
             return results
+        except JSONDecodeError as je:
+            logger.error('Unusual response from video-service for %s: %s', file_details, response.text)
         except requests.exceptions.HTTPError as e:
             logger.error('Failing uploading videos %s with HTTP error code %s', file_details, e.response.status_code)
             raise e

@@ -263,8 +263,8 @@ def fetch_video_metadata(
     user cannot specify environment name and environment ID).
 
     Returned metadata is a list of dictionaries, one for each video. Each
-    dictionary has the following fields: data_id, video_timestamp,
-    environment_id, assignment_id, device_id, and path.
+    dictionary has the following fields: data_id, video_timestamp, environment_id,
+    assignment_id, device_id, path, duration_seconds, fps, and frame_offsets.
 
     Args:
         start (datetime): Start of time period to fetch (default is None)

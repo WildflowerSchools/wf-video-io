@@ -263,8 +263,8 @@ def fetch_video_metadata(
     user cannot specify environment name and environment ID).
 
     Returned metadata is a list of dictionaries, one for each video. Each
-    dictionary has the following fields: data_id, video_timestamp,
-    environment_id, assignment_id, device_id, and path.
+    dictionary has the following fields: data_id, video_timestamp, environment_id,
+    assignment_id, device_id, path, duration_seconds, fps, and frame_offsets.
 
     Args:
         start (datetime): Start of time period to fetch (default is None)
@@ -293,6 +293,71 @@ def fetch_video_metadata(
     Returns:
         (list of dict): Metadata for videos that match search parameters
     """
+    video_metadata_raw = fetch_video_metadata_raw(
+        start=start,
+        end=end,
+        video_timestamps=video_timestamps,
+        camera_assignment_ids=camera_assignment_ids,
+        environment_id=environment_id,
+        environment_name=environment_name,
+        camera_device_types=camera_device_types,
+        camera_device_ids=camera_device_ids,
+        camera_part_numbers=camera_part_numbers,
+        camera_names=camera_names,
+        camera_serial_numbers=camera_serial_numbers,
+        client=client,
+        uri=uri,
+        token_uri=token_uri,
+        audience=audience,
+        client_id=client_id,
+        client_secret=client_secret,
+        video_storage_url=video_storage_url,
+        video_storage_auth_domain=video_storage_auth_domain,
+        video_storage_audience=video_storage_audience,
+        video_storage_client_id=video_storage_client_id,
+        video_storage_client_secret=video_storage_client_secret
+    )
+    logger.info('Parsing %s returned video metadata', len(video_metadata_raw))
+    video_metadata = list()
+    for datum in video_metadata_raw:
+        meta = datum.get('meta', {})
+        video_metadata.append({
+            'data_id': datum.get('id'),
+            'video_timestamp': datetime.datetime.fromisoformat(datum.get('timestamp')),
+            'environment_id': meta.get('environment_id'),
+            'assignment_id': meta.get('assignment_id'),
+            'device_id': meta.get('camera_id'),
+            'path': meta.get('path'),
+            'duration_seconds': meta.get('duration_seconds'),
+            'fps': meta.get('fps'),
+            'frame_offsets': meta.get('frame_offsets')
+        })
+    return video_metadata
+
+def fetch_video_metadata_raw(
+    start=None,
+    end=None,
+    video_timestamps=None,
+    camera_assignment_ids=None,
+    environment_id=None,
+    environment_name=None,
+    camera_device_types=None,
+    camera_device_ids=None,
+    camera_part_numbers=None,
+    camera_names=None,
+    camera_serial_numbers=None,
+    client=None,
+    uri=video_io.config.HONEYCOMB_URI,
+    token_uri=video_io.config.HONEYCOMB_TOKEN_URI,
+    audience=video_io.config.HONEYCOMB_AUDIENCE,
+    client_id=video_io.config.HONEYCOMB_CLIENT_ID,
+    client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
+    video_storage_url=video_io.config.VIDEO_STORAGE_URL,
+    video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
+    video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
+    video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
+):
     if (start is not None or end is not None) and video_timestamps is not None:
         raise ValueError('Cannot specify start/end and list of video timestamps')
     if video_timestamps is None and (start is None or end is None):
@@ -371,7 +436,7 @@ def fetch_video_metadata(
             client_id=client_id,
             client_secret=client_secret
         )
-    result = asyncio.run(_fetch_video_metadata(
+    video_metadata_raw = asyncio.run(_fetch_video_metadata(
         video_timestamp_min_utc=video_timestamp_min_utc,
         video_timestamp_max_utc=video_timestamp_max_utc,
         video_timestamps_utc=video_timestamps_utc,
@@ -383,19 +448,7 @@ def fetch_video_metadata(
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret
     ))
-    video_metadata = []
-    logger.info('Parsing %s returned video metadata', len(result))
-    for datum in result:
-        meta = datum.get('meta')
-        video_metadata.append({
-            'data_id': datum.get('id'),
-            'video_timestamp': datetime.datetime.fromisoformat(datum.get('timestamp')),
-            'environment_id': meta.get('environment_id'),
-            'assignment_id': meta.get('assignment_id'),
-            'device_id': meta.get('camera_id'),
-            'path': meta.get('path')
-        })
-    return video_metadata
+    return video_metadata_raw
 
 async def _fetch_video_metadata(
     video_timestamp_min_utc,

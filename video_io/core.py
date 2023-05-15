@@ -32,7 +32,7 @@ def fetch_videos(
     camera_part_numbers=None,
     camera_names=None,
     camera_serial_numbers=None,
-    local_video_directory='./videos',
+    local_video_directory="./videos",
     video_filename_extension=None,
     max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
     client=None,
@@ -45,7 +45,7 @@ def fetch_videos(
     video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
-    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
 ):
     """
     Downloads videos that match search parameters and returns their metadata.
@@ -83,7 +83,7 @@ def fetch_videos(
     Returns:
         (list of dict): Metadata for videos with local path information appended
     """
-    logger.info('Fetching metadata for videos that match specified parameters')
+    logger.info("Fetching metadata for videos that match specified parameters")
     video_metadata = fetch_video_metadata(
         start=start,
         end=end,
@@ -106,9 +106,9 @@ def fetch_videos(
         video_storage_auth_domain=video_storage_auth_domain,
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
-        video_storage_client_secret=video_storage_client_secret
+        video_storage_client_secret=video_storage_client_secret,
     )
-    logger.info('Downloading video files')
+    logger.info("Downloading video files")
     video_metadata_with_local_paths = download_video_files(
         video_metadata=video_metadata,
         local_video_directory=local_video_directory,
@@ -118,9 +118,10 @@ def fetch_videos(
         video_storage_auth_domain=video_storage_auth_domain,
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
-        video_storage_client_secret=video_storage_client_secret
+        video_storage_client_secret=video_storage_client_secret,
     )
     return video_metadata_with_local_paths
+
 
 def fetch_images(
     image_timestamps,
@@ -132,9 +133,9 @@ def fetch_images(
     camera_part_numbers=None,
     camera_names=None,
     camera_serial_numbers=None,
-    local_image_directory='./images',
-    image_filename_extension='png',
-    local_video_directory='./videos',
+    local_image_directory="./images",
+    image_filename_extension="png",
+    local_video_directory="./videos",
     video_filename_extension=None,
     max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
     client=None,
@@ -147,7 +148,7 @@ def fetch_images(
     video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
-    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
 ):
     """
     Downloads images that match search parameters and returns their metadata.
@@ -185,7 +186,7 @@ def fetch_images(
     Returns:
         (list of dict): Metadata for images with local path information appended
     """
-    logger.info('Fetching metadata for images that match specified parameters')
+    logger.info("Fetching metadata for images that match specified parameters")
     image_metadata = fetch_image_metadata(
         image_timestamps=image_timestamps,
         camera_assignment_ids=camera_assignment_ids,
@@ -206,9 +207,9 @@ def fetch_images(
         video_storage_auth_domain=video_storage_auth_domain,
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
-        video_storage_client_secret=video_storage_client_secret
+        video_storage_client_secret=video_storage_client_secret,
     )
-    logger.info('Downloading image files')
+    logger.info("Downloading image files")
     image_metadata_with_local_paths = download_image_files(
         image_metadata=image_metadata,
         local_image_directory=local_image_directory,
@@ -220,9 +221,10 @@ def fetch_images(
         video_storage_auth_domain=video_storage_auth_domain,
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
-        video_storage_client_secret=video_storage_client_secret
+        video_storage_client_secret=video_storage_client_secret,
     )
     return image_metadata_with_local_paths
+
 
 def fetch_video_metadata(
     start=None,
@@ -246,7 +248,7 @@ def fetch_video_metadata(
     video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
-    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
 ):
     """
     Searches Honeycomb for videos that match specified search parameters and
@@ -315,24 +317,29 @@ def fetch_video_metadata(
         video_storage_auth_domain=video_storage_auth_domain,
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
-        video_storage_client_secret=video_storage_client_secret
+        video_storage_client_secret=video_storage_client_secret,
     )
-    logger.info('Parsing %s returned video metadata', len(video_metadata_raw))
+    logger.info("Parsing %s returned video metadata", len(video_metadata_raw))
     video_metadata = list()
     for datum in video_metadata_raw:
-        meta = datum.get('meta', {})
-        video_metadata.append({
-            'data_id': datum.get('id'),
-            'video_timestamp': datetime.datetime.fromisoformat(datum.get('timestamp')),
-            'environment_id': meta.get('environment_id'),
-            'assignment_id': meta.get('assignment_id'),
-            'device_id': meta.get('camera_id'),
-            'path': meta.get('path'),
-            'duration_seconds': meta.get('duration_seconds'),
-            'fps': meta.get('fps'),
-            'frame_offsets': meta.get('frame_offsets')
-        })
+        meta = datum.get("meta", {})
+        video_metadata.append(
+            {
+                "data_id": datum.get("id"),
+                "video_timestamp": datetime.datetime.fromisoformat(
+                    datum.get("timestamp")
+                ),
+                "environment_id": meta.get("environment_id"),
+                "assignment_id": meta.get("assignment_id"),
+                "device_id": meta.get("camera_id"),
+                "path": meta.get("path"),
+                "duration_seconds": meta.get("duration_seconds"),
+                "fps": meta.get("fps"),
+                "frame_offsets": meta.get("frame_offsets"),
+            }
+        )
     return video_metadata
+
 
 def fetch_video_metadata_raw(
     start=None,
@@ -356,39 +363,49 @@ def fetch_video_metadata_raw(
     video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
-    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
 ):
     if (start is not None or end is not None) and video_timestamps is not None:
-        raise ValueError('Cannot specify start/end and list of video timestamps')
+        raise ValueError("Cannot specify start/end and list of video timestamps")
     if video_timestamps is None and (start is None or end is None):
-        raise ValueError('If not specifying specific timestamps, must specify both start and end times')
+        raise ValueError(
+            "If not specifying specific timestamps, must specify both start and end times"
+        )
     if camera_assignment_ids is not None:
-        raise NotImplementedError('Specification of cameras by assignment ID no longer supported')
+        raise NotImplementedError(
+            "Specification of cameras by assignment ID no longer supported"
+        )
     if camera_part_numbers is not None:
-        raise NotImplementedError('Specification of cameras by part numbers no longer supported')
+        raise NotImplementedError(
+            "Specification of cameras by part numbers no longer supported"
+        )
     if environment_id is None and environment_name is None:
-        raise NotImplementedError('Now that specification of cameras by assignment ID is no longer supported, you must specify an environment ID or environment name')
+        raise NotImplementedError(
+            "Now that specification of cameras by assignment ID is no longer supported, you must specify an environment ID or environment name"
+        )
     if environment_id is not None and environment_name is not None:
-        raise ValueError('Cannot specify both an environment ID and an environment_name')
-    if (
-        camera_device_ids is not None and
-        (
-            camera_device_types is not None or
-            camera_names is not None or
-            camera_serial_numbers is not None
+        raise ValueError(
+            "Cannot specify both an environment ID and an environment_name"
         )
+    if camera_device_ids is not None and (
+        camera_device_types is not None
+        or camera_names is not None
+        or camera_serial_numbers is not None
     ):
-        raise ValueError('Cannot specify both camera device IDs and camera device types/part numbers/names/serial numbers')
-    if (
-        camera_device_types is not None and
-        (
-            camera_names is not None or
-            camera_serial_numbers is not None
+        raise ValueError(
+            "Cannot specify both camera device IDs and camera device types/part numbers/names/serial numbers"
         )
+    if camera_device_types is not None and (
+        camera_names is not None or camera_serial_numbers is not None
     ):
-        raise ValueError('Cannot specify both camera device types and part numbers/names/serial numbers')
+        raise ValueError(
+            "Cannot specify both camera device types and part numbers/names/serial numbers"
+        )
     if video_timestamps is not None:
-        video_timestamps_utc = [video_timestamp.astimezone(datetime.timezone.utc) for video_timestamp in video_timestamps]
+        video_timestamps_utc = [
+            video_timestamp.astimezone(datetime.timezone.utc)
+            for video_timestamp in video_timestamps
+        ]
         video_timestamp_min_utc = min(video_timestamps)
         video_timestamp_max_utc = max(video_timestamps)
         start_utc = video_timestamp_min_utc
@@ -407,7 +424,7 @@ def fetch_video_metadata_raw(
             token_uri=token_uri,
             audience=audience,
             client_id=client_id,
-            client_secret=client_secret
+            client_secret=client_secret,
         )
     if camera_device_types is not None:
         camera_device_ids = honeycomb_io.fetch_camera_ids_from_environment(
@@ -420,12 +437,9 @@ def fetch_video_metadata_raw(
             token_uri=token_uri,
             audience=audience,
             client_id=client_id,
-            client_secret=client_secret
+            client_secret=client_secret,
         )
-    if (
-        camera_names is not None or
-        camera_serial_numbers is not None
-    ):
+    if camera_names is not None or camera_serial_numbers is not None:
         camera_device_ids = honeycomb_io.fetch_camera_ids_from_camera_properties(
             camera_names=camera_names,
             camera_serial_numbers=camera_serial_numbers,
@@ -434,21 +448,24 @@ def fetch_video_metadata_raw(
             token_uri=token_uri,
             audience=audience,
             client_id=client_id,
-            client_secret=client_secret
+            client_secret=client_secret,
         )
-    video_metadata_raw = asyncio.run(_fetch_video_metadata(
-        video_timestamp_min_utc=video_timestamp_min_utc,
-        video_timestamp_max_utc=video_timestamp_max_utc,
-        video_timestamps_utc=video_timestamps_utc,
-        environment_id=environment_id,
-        camera_device_ids=camera_device_ids,
-        video_storage_url=video_storage_url,
-        video_storage_auth_domain=video_storage_auth_domain,
-        video_storage_audience=video_storage_audience,
-        video_storage_client_id=video_storage_client_id,
-        video_storage_client_secret=video_storage_client_secret
-    ))
+    video_metadata_raw = asyncio.run(
+        _fetch_video_metadata(
+            video_timestamp_min_utc=video_timestamp_min_utc,
+            video_timestamp_max_utc=video_timestamp_max_utc,
+            video_timestamps_utc=video_timestamps_utc,
+            environment_id=environment_id,
+            camera_device_ids=camera_device_ids,
+            video_storage_url=video_storage_url,
+            video_storage_auth_domain=video_storage_auth_domain,
+            video_storage_audience=video_storage_audience,
+            video_storage_client_id=video_storage_client_id,
+            video_storage_client_secret=video_storage_client_secret,
+        )
+    )
     return video_metadata_raw
+
 
 async def _fetch_video_metadata(
     video_timestamp_min_utc,
@@ -460,7 +477,7 @@ async def _fetch_video_metadata(
     video_storage_auth_domain,
     video_storage_audience,
     video_storage_client_id,
-    video_storage_client_secret
+    video_storage_client_secret,
 ):
     video_client = video_io.client.VideoStorageClient(
         token=None,
@@ -468,61 +485,72 @@ async def _fetch_video_metadata(
         auth_domain=video_storage_auth_domain,
         audience=video_storage_audience,
         client_id=video_storage_client_id,
-        client_secret=video_storage_client_secret
-
+        client_secret=video_storage_client_secret,
     )
     result = []
     if video_timestamps_utc is None:
         if camera_device_ids is None:
-            logger.info('Fetching video metadata for all cameras in specified environment')
+            logger.info(
+                "Fetching video metadata for all cameras in specified environment"
+            )
             video_metadata_pages = video_client.get_videos_metadata_paginated(
                 environment_id=environment_id,
                 start_date=video_timestamp_min_utc,
-                end_date=video_timestamp_max_utc
+                end_date=video_timestamp_max_utc,
             )
             async for video_metadata_page in video_metadata_pages:
                 result.append(video_metadata_page)
         else:
-            logger.info('Fetching video metadata for specific cameras')
+            logger.info("Fetching video metadata for specific cameras")
             for camera_id in camera_device_ids:
-                logger.info('Fetching video metadata for camera device ID %s', camera_id)
+                logger.info(
+                    "Fetching video metadata for camera device ID %s", camera_id
+                )
                 video_metadata_pages = video_client.get_videos_metadata_paginated(
                     environment_id=environment_id,
                     start_date=video_timestamp_min_utc,
                     end_date=video_timestamp_max_utc,
-                    camera_id=camera_id
+                    camera_id=camera_id,
                 )
                 async for video_metadata_page in video_metadata_pages:
                     result.append(video_metadata_page)
     else:
         for video_timestamp_utc in video_timestamps_utc:
-            logger.info('Fetching video metadata for video timestamp %s', video_timestamp_utc.isoformat())
+            logger.info(
+                "Fetching video metadata for video timestamp %s",
+                video_timestamp_utc.isoformat(),
+            )
             if camera_device_ids is None:
-                logger.info('Fetching video metadata for all cameras in specified environment')
+                logger.info(
+                    "Fetching video metadata for all cameras in specified environment"
+                )
                 video_metadata_pages = video_client.get_videos_metadata_paginated(
                     environment_id=environment_id,
                     start_date=video_timestamp_utc,
-                    end_date=video_timestamp_utc + video_io.config.VIDEO_DURATION
+                    end_date=video_timestamp_utc + video_io.config.VIDEO_DURATION,
                 )
                 async for video_metadata_page in video_metadata_pages:
                     result.append(video_metadata_page)
             else:
-                logger.info('Fetching video metadata for specific cameras')
+                logger.info("Fetching video metadata for specific cameras")
                 for camera_id in camera_device_ids:
-                    logger.info('Fetching video metadata for camera device ID %s', camera_id)
+                    logger.info(
+                        "Fetching video metadata for camera device ID %s", camera_id
+                    )
                     video_metadata_pages = video_client.get_videos_metadata_paginated(
                         environment_id=environment_id,
                         start_date=video_timestamp_utc,
                         end_date=video_timestamp_utc + video_io.config.VIDEO_DURATION,
-                        camera_id=camera_id
+                        camera_id=camera_id,
                     )
                     async for video_metadata_page in video_metadata_pages:
                         result.append(video_metadata_page)
     return result
 
+
 def download_video_files(
     video_metadata,
-    local_video_directory='./videos',
+    local_video_directory="./videos",
     video_filename_extension=None,
     max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
     video_storage_url=video_io.config.VIDEO_STORAGE_URL,
@@ -564,19 +592,24 @@ def download_video_files(
         (list of dict): Metadata for videos with local path information appended
     """
     if video_filename_extension is not None:
-        raise NotImplementedError('Specifying video filename extension is no longer supported')
-    video_metadata = asyncio.run(_download_video_files(
-        video_metadata=video_metadata,
-        local_video_directory=local_video_directory,
-        max_workers=max_workers,
-        video_storage_url=video_storage_url,
-        video_storage_auth_domain=video_storage_auth_domain,
-        video_storage_audience=video_storage_audience,
-        video_storage_client_id=video_storage_client_id,
-        video_storage_client_secret=video_storage_client_secret,
-        overwrite=overwrite
-    ))
+        raise NotImplementedError(
+            "Specifying video filename extension is no longer supported"
+        )
+    video_metadata = asyncio.run(
+        _download_video_files(
+            video_metadata=video_metadata,
+            local_video_directory=local_video_directory,
+            max_workers=max_workers,
+            video_storage_url=video_storage_url,
+            video_storage_auth_domain=video_storage_auth_domain,
+            video_storage_audience=video_storage_audience,
+            video_storage_client_id=video_storage_client_id,
+            video_storage_client_secret=video_storage_client_secret,
+            overwrite=overwrite,
+        )
+    )
     return video_metadata
+
 
 async def _download_video_files(
     video_metadata,
@@ -595,19 +628,26 @@ async def _download_video_files(
         auth_domain=video_storage_auth_domain,
         audience=video_storage_audience,
         client_id=video_storage_client_id,
-        client_secret=video_storage_client_secret
+        client_secret=video_storage_client_secret,
     )
     futures = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as e:
         for video_metadatum in video_metadata:
-            f = e.submit(asyncio.run, video_client.get_video(
-                path=video_metadatum['path'],
-                destination=local_video_directory,
-                overwrite=overwrite))
-            video_metadatum['video_local_path'] = os.path.join(local_video_directory, video_metadatum['path'])
+            f = e.submit(
+                asyncio.run,
+                video_client.get_video(
+                    path=video_metadatum["path"],
+                    destination=local_video_directory,
+                    overwrite=overwrite,
+                ),
+            )
+            video_metadatum["video_local_path"] = os.path.join(
+                local_video_directory, video_metadatum["path"]
+            )
             futures.append(f)
     list(concurrent.futures.as_completed(futures))
     return video_metadata
+
 
 def fetch_image_metadata(
     image_timestamps,
@@ -629,7 +669,7 @@ def fetch_image_metadata(
     video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
-    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
 ):
     """
     Searches Honeycomb for videos containing images that match specified search
@@ -676,14 +716,17 @@ def fetch_image_metadata(
     for image_timestamp in image_timestamps:
         image_timestamp = image_timestamp.astimezone(datetime.timezone.utc)
         timestamp_floor = image_timestamp.replace(second=0, microsecond=0)
-        video_timestamp = timestamp_floor + math.floor((image_timestamp - timestamp_floor)/datetime.timedelta(seconds=10))*datetime.timedelta(seconds=10)
-        frame_number = round((image_timestamp - video_timestamp)/datetime.timedelta(milliseconds=100))
+        video_timestamp = timestamp_floor + math.floor(
+            (image_timestamp - timestamp_floor) / datetime.timedelta(seconds=10)
+        ) * datetime.timedelta(seconds=10)
+        frame_number = round(
+            (image_timestamp - video_timestamp) / datetime.timedelta(milliseconds=100)
+        )
         if video_timestamp not in image_metadata_by_video_timestamp:
             image_metadata_by_video_timestamp[video_timestamp] = []
-        image_metadata_by_video_timestamp[video_timestamp].append({
-            'image_timestamp': image_timestamp,
-            'frame_number': frame_number
-        })
+        image_metadata_by_video_timestamp[video_timestamp].append(
+            {"image_timestamp": image_timestamp, "frame_number": frame_number}
+        )
     video_timestamps = list(image_metadata_by_video_timestamp.keys())
     video_metadata = fetch_video_metadata(
         video_timestamps=video_timestamps,
@@ -705,26 +748,27 @@ def fetch_image_metadata(
         video_storage_auth_domain=video_storage_auth_domain,
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
-        video_storage_client_secret=video_storage_client_secret
+        video_storage_client_secret=video_storage_client_secret,
     )
     image_metadata = []
     for video in video_metadata:
-        for image in image_metadata_by_video_timestamp[video['video_timestamp']]:
+        for image in image_metadata_by_video_timestamp[video["video_timestamp"]]:
             image_metadata.append({**video, **image})
     return image_metadata
 
+
 def download_image_files(
     image_metadata,
-    local_image_directory='./images',
-    image_filename_extension='png',
-    local_video_directory='./videos',
+    local_image_directory="./images",
+    image_filename_extension="png",
+    local_video_directory="./videos",
     video_filename_extension=None,
     max_workers=video_io.config.MAX_DOWNLOAD_WORKERS,
     video_storage_url=video_io.config.VIDEO_STORAGE_URL,
     video_storage_auth_domain=video_io.config.VIDEO_STORAGE_AUTH_DOMAIN,
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
-    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET
+    video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
 ):
     """
     Downloads videos from video service to local directory tree, extract images,
@@ -769,28 +813,31 @@ def download_image_files(
         video_storage_auth_domain=video_storage_auth_domain,
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
-        video_storage_client_secret=video_storage_client_secret
+        video_storage_client_secret=video_storage_client_secret,
     )
     image_metadata_with_local_paths = []
     for image in image_metadata_with_local_video_paths:
         download_path = image_local_path(
             local_image_directory=local_image_directory,
-            environment_id=image.get('environment_id'),
-            device_id = image.get('device_id'),
-            video_timestamp=image.get('video_timestamp'),
-            frame_number=image.get('frame_number'),
-            image_filename_extension=image_filename_extension
+            environment_id=image.get("environment_id"),
+            device_id=image.get("device_id"),
+            video_timestamp=image.get("video_timestamp"),
+            frame_number=image.get("frame_number"),
+            image_filename_extension=image_filename_extension,
         )
         if not os.path.exists(download_path):
-            video_input = cv_utils.VideoInput(image.get('video_local_path'))
-            image_data = video_input.get_frame_by_frame_number(image.get('frame_number'))
+            video_input = cv_utils.VideoInput(image.get("video_local_path"))
+            image_data = video_input.get_frame_by_frame_number(
+                image.get("frame_number")
+            )
             os.makedirs(os.path.dirname(download_path), exist_ok=True)
-            cv.imwrite(download_path, image_data) # pylint: disable=E1101
+            cv.imwrite(download_path, image_data)  # pylint: disable=E1101
         else:
-            logger.info('File %s already exists', download_path)
-        image['image_local_path'] = download_path
+            logger.info("File %s already exists", download_path)
+        image["image_local_path"] = download_path
         image_metadata_with_local_paths.append(image)
     return image_metadata_with_local_paths
+
 
 def image_local_path(
     local_image_directory,
@@ -798,14 +845,15 @@ def image_local_path(
     device_id,
     video_timestamp,
     frame_number,
-    image_filename_extension='png'
+    image_filename_extension="png",
 ):
     return os.path.join(
         local_image_directory,
         environment_id,
         device_id,
-        f'{video_timestamp.strftime("%Y/%m/%d/%H-%M-%S")}_{frame_number:03}.{image_filename_extension}'
+        f'{video_timestamp.strftime("%Y/%m/%d/%H-%M-%S")}_{frame_number:03}.{image_filename_extension}',
     )
+
 
 def video_timestamp_min(start):
     original_tzinfo = start.tzinfo
@@ -814,11 +862,16 @@ def video_timestamp_min(start):
     else:
         start_naive = start
     timestamp_min_naive = (
-        datetime.datetime.min +
-        math.floor((start_naive - datetime.datetime.min)/video_io.config.VIDEO_DURATION)*video_io.config.VIDEO_DURATION
+        datetime.datetime.min
+        + math.floor(
+            (start_naive - datetime.datetime.min) / video_io.config.VIDEO_DURATION
+        )
+        * video_io.config.VIDEO_DURATION
     )
     if original_tzinfo:
-        timestamp_min = timestamp_min_naive.replace(tzinfo=datetime.timezone.utc).astimezone(original_tzinfo)
+        timestamp_min = timestamp_min_naive.replace(
+            tzinfo=datetime.timezone.utc
+        ).astimezone(original_tzinfo)
     else:
         timestamp_min = timestamp_min_naive
     return timestamp_min
@@ -831,26 +884,32 @@ def video_timestamp_max(end):
     else:
         end_naive = end
     timestamp_max_naive = (
-        datetime.datetime.min +
-        math.ceil((end_naive - datetime.datetime.min)/video_io.config.VIDEO_DURATION)*video_io.config.VIDEO_DURATION
+        datetime.datetime.min
+        + math.ceil(
+            (end_naive - datetime.datetime.min) / video_io.config.VIDEO_DURATION
+        )
+        * video_io.config.VIDEO_DURATION
     )
     if original_tzinfo:
-        timestamp_max = timestamp_max_naive.replace(tzinfo=datetime.timezone.utc).astimezone(original_tzinfo)
+        timestamp_max = timestamp_max_naive.replace(
+            tzinfo=datetime.timezone.utc
+        ).astimezone(original_tzinfo)
     else:
         timestamp_max = timestamp_max_naive
     return timestamp_max
 
 
 def fetch_concatenated_video(
-        environment_name: str,
-        start: datetime,
-        end: datetime,
-        output_directory: str,
-        camera_names: Optional[List[str]] = None,
-        workers: int = cpu_count() - 1,
-        video_snippet_directory: str = None,
-        overwrite_video_snippets: bool = False,
-        overwrite_concatenated_video: bool = False) -> Optional[pd.DataFrame]:
+    environment_name: str,
+    start: datetime,
+    end: datetime,
+    output_directory: str,
+    camera_names: Optional[List[str]] = None,
+    workers: int = cpu_count() - 1,
+    video_snippet_directory: str = None,
+    overwrite_video_snippets: bool = False,
+    overwrite_concatenated_video: bool = False,
+) -> Optional[pd.DataFrame]:
     """
     Create concatenated video files for each camera in a particular environment given a provided start and end time.
 
@@ -878,10 +937,12 @@ def fetch_concatenated_video(
         start=start,
         end=end,
         environment_name=environment_name,
-        camera_names=camera_names
+        camera_names=camera_names,
     )
     if video_metadata is None or len(video_metadata) == 0:
-        logger.warning(f"Found 0 videos for {environment_name} between {start} and {end}")
+        logger.warning(
+            f"Found 0 videos for {environment_name} between {start} and {end}"
+        )
         return None
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -895,7 +956,7 @@ def fetch_concatenated_video(
             video_metadata=video_metadata,
             local_video_directory=video_snippet_storage_dir,
             max_workers=workers,
-            overwrite=overwrite_video_snippets
+            overwrite=overwrite_video_snippets,
         )
 
         concatenated_video_output = concat_videos(
@@ -903,18 +964,19 @@ def fetch_concatenated_video(
             start=start,
             end=end,
             output_directory=output_directory,
-            overwrite=overwrite_concatenated_video
+            overwrite=overwrite_concatenated_video,
         )
 
     return pd.DataFrame(concatenated_video_output)
 
+
 def combine_videos(
-    video_inputs:List[str],
+    video_inputs: List[str],
     output_directory: Optional[str] = None,
-    output_path: Optional[str] = None
+    output_path: Optional[str] = None,
 ):
     return generate_video_mosaic(
         video_inputs=video_inputs,
         output_directory=output_directory,
-        output_path=output_path
+        output_path=output_path,
     )

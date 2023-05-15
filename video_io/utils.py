@@ -16,11 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 def concat_videos(
-        video_metadata: List[dict],
-        start: datetime,
-        end: datetime,
-        output_directory: str,
-        overwrite: bool = False) -> Optional[List]:
+    video_metadata: List[dict],
+    start: datetime,
+    end: datetime,
+    output_directory: str,
+    overwrite: bool = False,
+) -> Optional[List]:
     """
     Use the output of core.download_video_files() to concatenate videos for each camera into a single video file.
 
@@ -42,7 +43,15 @@ def concat_videos(
     concatenated_video_output = []
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        for (environment_id, camera_assignment_id, camera_device_id), df_video_files_by_device in pd.DataFrame(video_metadata).sort_values(by=['device_id', 'video_timestamp']).groupby(['environment_id', 'assignment_id', 'device_id'], dropna=False):
+        for (
+            environment_id,
+            camera_assignment_id,
+            camera_device_id,
+        ), df_video_files_by_device in (
+            pd.DataFrame(video_metadata)
+            .sort_values(by=["device_id", "video_timestamp"])
+            .groupby(["environment_id", "assignment_id", "device_id"], dropna=False)
+        ):
             video_output_path = f"{output_directory}/{environment_id}_{camera_device_id}_{start.strftime('%m%d%YT%H%M%S%f%z')}_{end.strftime('%m%d%YT%H%M%S%f%z')}.mp4"
 
             if not os.path.exists(video_output_path) or overwrite:
@@ -50,61 +59,77 @@ def concat_videos(
                 # gets input into ffmpeg.
                 with tempfile.NamedTemporaryFile() as tmp_concat_demuxer_file:
                     for idx, video_file_row in df_video_files_by_device.iterrows():
-                        video_path = video_file_row['video_local_path']
+                        video_path = video_file_row["video_local_path"]
                         final_video_snippet_path = video_path
 
                         # TODO: There's an assumption in the following logic that video snippets will be always be 10.0 seconds long, but that may not be true. We should trim/pad videos appropriately before executing the next piece of code
 
-                        video_start_time = video_file_row['video_timestamp']
-                        video_end_time = video_file_row['video_timestamp'] + datetime.timedelta(seconds=video_snippet_length)
+                        video_start_time = video_file_row["video_timestamp"]
+                        video_end_time = video_file_row[
+                            "video_timestamp"
+                        ] + datetime.timedelta(seconds=video_snippet_length)
 
                         start_trim = 0.0
                         end_trim = video_snippet_length
 
                         if start > video_start_time:
-                            start_trim = (start - video_file_row['video_timestamp']).total_seconds()
+                            start_trim = (
+                                start - video_file_row["video_timestamp"]
+                            ).total_seconds()
 
                         if end < video_end_time:
-                            end_trim = video_snippet_length - (video_end_time - end).total_seconds()
+                            end_trim = (
+                                video_snippet_length
+                                - (video_end_time - end).total_seconds()
+                            )
 
                         duration = end_trim - start_trim
                         if duration != video_snippet_length:
                             final_video_snippet_path = f"{tmp_dir}/{environment_id}_{camera_device_id}_{idx}_trimmed_video.mp4"
-                            trim_video(input_path=video_path,
-                                       output_path=final_video_snippet_path,
-                                       start_trim=start_trim,
-                                       end_trim=end_trim,
-                                       fps=video_snippet_fps)
+                            trim_video(
+                                input_path=video_path,
+                                output_path=final_video_snippet_path,
+                                start_trim=start_trim,
+                                end_trim=end_trim,
+                                fps=video_snippet_fps,
+                            )
 
-                        tmp_concat_demuxer_file.write(str.encode(f"file \'file:{final_video_snippet_path}'\n"))
+                        tmp_concat_demuxer_file.write(
+                            str.encode(f"file 'file:{final_video_snippet_path}'\n")
+                        )
                         tmp_concat_demuxer_file.flush()
 
-                    ffmpeg.input(f"file:{tmp_concat_demuxer_file.name}",
-                                 format='concat',
-                                 safe=0,
-                                 r=video_snippet_fps) \
-                        .output(f"file:{video_output_path}",
-                                c="copy",
-                                r=video_snippet_fps,
-                                vsync=0) \
-                        .overwrite_output() \
-                        .run()
+                    ffmpeg.input(
+                        f"file:{tmp_concat_demuxer_file.name}",
+                        format="concat",
+                        safe=0,
+                        r=video_snippet_fps,
+                    ).output(
+                        f"file:{video_output_path}",
+                        c="copy",
+                        r=video_snippet_fps,
+                        vsync=0,
+                    ).overwrite_output().run()
 
-            concatenated_video_output.append({
-                "environment_id": environment_id,
-                "camera_assignment_id": camera_assignment_id,
-                "camera_device_id": camera_device_id,
-                "file_path": video_output_path})
+            concatenated_video_output.append(
+                {
+                    "environment_id": environment_id,
+                    "camera_assignment_id": camera_assignment_id,
+                    "camera_device_id": camera_device_id,
+                    "file_path": video_output_path,
+                }
+            )
 
     return concatenated_video_output
 
 
 def trim_video(
-        input_path: str,
-        output_path: str,
-        start_trim: float = 0.0,
-        end_trim: Optional[float] = None,
-        fps: int = 10) -> bool:
+    input_path: str,
+    output_path: str,
+    start_trim: float = 0.0,
+    end_trim: Optional[float] = None,
+    fps: int = 10,
+) -> bool:
     """
     Trims video from a given start offset (in seconds) to a given end offset (in seconds).
 
@@ -127,12 +152,14 @@ def trim_video(
     """
     logging.info(
         "Trimming video '{}' from {} seconds to {} seconds".format(
-            input_path, start_trim, end_trim))
+            input_path, start_trim, end_trim
+        )
+    )
 
     if not os.path.exists(input_path):
         err = f"'{input_path}' does not exist, unable to trim video. Raising FileNotFoundError exception."
         logger.error(err)
-        raise(FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), err))
+        raise (FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), err))
 
     if end_trim is None:
         video_reader = VideoReader(input_path)
@@ -143,19 +170,13 @@ def trim_video(
     ffmpeg_output_path = output_path
     try:
         if should_overwrite_input:
-            tmp_file = tempfile.NamedTemporaryFile(suffix='.mp4')
+            tmp_file = tempfile.NamedTemporaryFile(suffix=".mp4")
             ffmpeg_output_path = tmp_file.name
 
-        duration_seconds = (end_trim - start_trim)
-        ffmpeg.input(
-                input_path,
-                ss=start_trim,
-                to=end_trim)\
-            .output(
-                ffmpeg_output_path,
-                r=fps,
-                vframes=int(duration_seconds * fps))\
-            .overwrite_output().run()
+        duration_seconds = end_trim - start_trim
+        ffmpeg.input(input_path, ss=start_trim, to=end_trim).output(
+            ffmpeg_output_path, r=fps, vframes=int(duration_seconds * fps)
+        ).overwrite_output().run()
 
         if should_overwrite_input:
             shutil.copy(ffmpeg_output_path, input_path)
@@ -168,19 +189,22 @@ def trim_video(
             try:
                 os.remove(ffmpeg_output_path)
             except:
-                logger.error(f"Unable to cleanup {ffmpeg_output_path} after exception trimming video")
+                logger.error(
+                    f"Unable to cleanup {ffmpeg_output_path} after exception trimming video"
+                )
 
         return False
 
     return True
 
+
 def generate_video_mosaic(
-        video_inputs:List[str],
-        output_directory: Optional[str] = None,
-        output_path: Optional[str] = None
+    video_inputs: List[str],
+    output_directory: Optional[str] = None,
+    output_path: Optional[str] = None,
 ):
-    width=None
-    height=None
+    width = None
+    height = None
 
     if output_directory is None and output_path is None:
         raise ValueError("output_directory and output_path cannot both be None")
@@ -201,7 +225,7 @@ def generate_video_mosaic(
         if not os.path.exists(f):
             err = f"'{f}' does not exist, unable to trim video. Raising FileNotFoundError exception."
             logger.error(err)
-            raise(FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), err))
+            raise (FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), err))
         ffmpeg_inputs.append(ffmpeg.input(f))
 
         if width is None or height is None:
@@ -215,7 +239,7 @@ def generate_video_mosaic(
 
         row_width = math.ceil(math.sqrt(n))
         shape = []
-        for ii in range(row_width, n+1, row_width):
+        for ii in range(row_width, n + 1, row_width):
             shape.append(row_width)
 
         if n > sum(shape):
@@ -225,7 +249,7 @@ def generate_video_mosaic(
 
     grid = get_grid(len(video_inputs))
 
-    layout=[]
+    layout = []
     ideal_shape = max(grid)
     for row, num_cols in enumerate(grid):
         for col in range(num_cols):
@@ -240,11 +264,8 @@ def generate_video_mosaic(
         # fill="black[out]"
     )
 
-    ffmpeg.output(vout,
-                  _output_path,
-                  pix_fmt='yuv420p',
-                  vcodec='libx264') \
-        .overwrite_output() \
-        .run()
+    ffmpeg.output(
+        vout, _output_path, pix_fmt="yuv420p", vcodec="libx264"
+    ).overwrite_output().run()
 
     return _output_path

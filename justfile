@@ -5,6 +5,9 @@ version := "v9"
 lint:
     pylint video_io
 
+format:
+    black video_io
+
 publish:
     poetry publish --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing
 

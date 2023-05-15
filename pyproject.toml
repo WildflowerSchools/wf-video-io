@@ -4,7 +4,7 @@ dynamic = ["version"]
 
 [tool.poetry]
 name = "wf-video-io"
-version = "3.2.1"
+version = "3.2.3"
 description = "Library for working with video files and interacting with the wildflower video-service"
 authors = ["Paul J DeCoursey <paul@decoursey.net>", "Theodore Quinn <ted.quinn@wildflowerschools.org>"]
 maintainers = ["Paul J DeCoursey <paul@decoursey.net>", "Theodore Quinn <ted.quinn@wildflowerschools.org>", "Benjamin Jaffe-Talberg <ben.talberg@gmail.com>"]
@@ -13,11 +13,12 @@ readme = "README.md"
 packages = [{include = "video_io"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.12"
 jmespath = "^1.0.1"
 tenacity = "^8.1.0"
 urllib3 = "^1.26.12"
 wf-honeycomb-io = ">=2.0.0"
+wf-gqlpycgen = "^0.7.4"
 wf-cv-utils = ">=3.4.0"
 opencv-python = ">=4.6.0"
 wf-fastapi-auth0 = ">=1.0"

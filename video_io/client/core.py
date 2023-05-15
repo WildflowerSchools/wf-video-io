@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from typing import List, Dict
 
+from cachetools import TTLCache
 import requests
 from requests.adapters import HTTPAdapter
 import yaml
@@ -16,10 +17,6 @@ import video_io.config
 from video_io.log_retry import LogRetry
 from video_io.client.errors import SyncError
 from video_io.client.utils import client_token, parse_path, get_video_file_details, chunks, FPS_PATH
-
-
-parse_path("06403ab8-8300-456f-802a-1f4228f69042/2022/10/25/16/03-50.mp4")
-
 
 
 logger = logging.getLogger(__name__)
@@ -39,15 +36,18 @@ class VideoStorageClient:
     ):
         self.CACHE_DIRECTORY = cache_directory
         self.URL = url
+
+        self.auth_domain = auth_domain
+        self.audience = audience
+        self.client_id = client_id
+        self.client_secret = client_secret
+
+        self.headers = {} # {"Content-Type": "application/json"}
+
+        self.tokens = {}
         if token is not None:
-            self.token = token
-        else:
-            self.token = client_token(
-                auth_domain=auth_domain,
-                audience=audience,
-                client_id=client_id,
-                client_secret=client_secret
-            )
+            self.tokens["access_token"] = token
+
         self.request_session = self.init_request_session()
 
     @staticmethod
@@ -64,6 +64,37 @@ class VideoStorageClient:
         request_session.mount("http://", adapter)
         return request_session
 
+    def refresh_token(self):
+        try:
+            (token, expires_in) = client_token(
+                auth_domain=self.auth_domain,
+                audience=self.audience,
+                client_id=self.client_id,
+                client_secret=self.client_secret
+            )
+            if token is None:
+               raise Exception("invalid client_credentials")
+
+            # Refresh token once TTL is less than 5 minutes
+            self.tokens = TTLCache(maxsize=1, ttl=expires_in - 300)
+            self.tokens["access_token"] = token
+        except Exception as err:
+            import traceback
+
+            logger.error("An exception occurred during Authorization")
+            traceback.print_exception(err)
+            raise Exception("invalid client_credentials") from err
+
+    @property
+    def headers(self):
+        if "access_token" not in self.tokens:
+            self.refresh_token()
+
+        return {"Authorization": f"Bearer {self.tokens['access_token']}", **self._headers}
+
+    @headers.setter
+    def headers(self, header_dict: dict):
+        self._headers = header_dict
 
     async def get_videos(self, environment_id, start_date, end_date, camera_id=None, destination=None):
         if destination is None:
@@ -86,9 +117,7 @@ class VideoStorageClient:
             request = {
                 "method": "GET",
                 "url": f'{self.URL}/video/{path}/data',
-                "headers": {
-                    "Authorization": f"bearer {self.token}",
-                },
+                "headers": self.headers
             }
             try:
                 response = self.request_session.request(**request)
@@ -123,9 +152,7 @@ class VideoStorageClient:
         request = {
             "method": "GET",
             "url": f'{self.URL}/videos/{environment_id}/device/{camera_id}' if camera_id is not None else f'{self.URL}/videos/{environment_id}',
-            "headers": {
-                "Authorization": f"bearer {self.token}",
-            },
+            "headers": self.headers,
             "params": {
                 "start_date": start_date,
                 "end_date": end_date,
@@ -192,9 +219,7 @@ class VideoStorageClient:
         request = {
             "method": "POST",
             "url": f"{self.URL}/videos",
-            "headers": {
-                "Authorization": f"bearer {self.token}",
-            }
+            "headers": self.headers
         }
         files = []
         videos = []
@@ -225,9 +250,7 @@ class VideoStorageClient:
         request = {
             "method": "POST",
             "url": f"{self.URL}/videos/check",
-            "headers": {
-                "Authorization": f"bearer {self.token}",
-            },
+            "headers": self.headers,
             "json": paths,
         }
         try:

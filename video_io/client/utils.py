@@ -31,7 +31,7 @@ def client_token(
 def get_video_file_details(path):
     # check for video file if it exists load that and return its contents.
     # if not then run ffprobe and return a new meta document
-    return ffmpeg.probe(path, timeout=5)
+    return ffmpeg.probe(path)
 
 
 CACHE_PATH_FILE = re.compile(

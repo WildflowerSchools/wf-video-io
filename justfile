@@ -8,8 +8,11 @@ lint:
 format:
     black video_io
 
-publish:
-    poetry publish --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing
+build:
+    poetry build
+
+publish: build
+    poetry publish --skip-existing
 
 
 build-docker-migrate:

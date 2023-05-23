@@ -289,6 +289,8 @@ class VideoStorageClient:
             request = requests.Request(**request)
             r = request.prepare()
             response = self.request_session.send(r)
+            response.raise_for_status()
+
             for i, vr in enumerate(response.json()):
                 results.append(
                     {

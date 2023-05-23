@@ -2,6 +2,7 @@ import json
 import re
 import subprocess
 
+import ffmpeg
 from tenacity import retry, wait_random, stop_after_attempt
 from auth0.v3.authentication import GetToken
 from cachetools.func import ttl_cache
@@ -28,24 +29,9 @@ def client_token(
 
 @ttl_cache(ttl=60 * 60 * 4)
 def get_video_file_details(path):
-    # check for meta-file if it exists load that and return it's contents.
+    # check for video file if it exists load that and return its contents.
     # if not then run ffprobe and return a new meta document
-    ffprobe_out = subprocess.run(
-        [
-            "ffprobe",
-            "-v",
-            "error",
-            "-show_entries",
-            "format=duration:stream=nb_read_frames,r_frame_rate,codec_type",
-            "-count_frames",
-            "-of",
-            "json=compact=1",
-            path,
-        ],
-        capture_output=True,
-        check=True,
-    )
-    return json.loads(ffprobe_out.stdout)
+    return ffmpeg.probe(path, timeout=5)
 
 
 CACHE_PATH_FILE = re.compile(

@@ -8,9 +8,11 @@ lint:
 format:
     black video_io
 
-publish:
-    poetry publish --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing
+build:
+    poetry build
 
+publish: build
+    poetry publish
 
 build-docker-migrate:
     @docker build -t wildflowerschools/wf-classroom-video-store:migrate-{{version}} -f migrate/Dockerfile .

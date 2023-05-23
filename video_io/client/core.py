@@ -8,6 +8,8 @@ import os
 from pathlib import Path
 from typing import List, Dict
 
+import aiohttp
+from aiohttp_retry import RetryClient, ExponentialRetry
 from cachetools import TTLCache
 import requests
 from requests.adapters import HTTPAdapter
@@ -266,11 +268,6 @@ class VideoStorageClient:
         )
 
     async def upload_videos(self, file_details: List[Dict]):
-        request = {
-            "method": "POST",
-            "url": f"{self.URL}/videos",
-            "headers": self.headers,
-        }
         files = []
         videos = []
         for details in file_details:
@@ -282,41 +279,61 @@ class VideoStorageClient:
                 )
             )
             videos.append(meta)
-        results = []
-        request["files"] = files
-        request["data"] = {"videos": json.dumps(videos)}
         try:
-            request = requests.Request(**request)
-            r = request.prepare()
-            response = self.request_session.send(r)
-            for i, vr in enumerate(response.json()):
-                results.append(
-                    {
-                        "path": videos[i]["meta"]["path"],
-                        "uploaded": True,
-                        "id": vr["id"],
-                        "disposition": "ok"
-                        if "disposition" not in vr
-                        else vr["disposition"],
-                    }
-                )
-            return results
+            retry_options = ExponentialRetry(attempts=3)
+            client_session = aiohttp.ClientSession()
+            retry_client = RetryClient(client_session=client_session, raise_for_status=True, retry_options=retry_options)
+
+            data = aiohttp.FormData()
+
+            for ii, (filetype, fileio) in enumerate(files):
+                data.add_field('file', fileio, filename=file_details[ii]['file'], content_type='video/mp4')
+            data.add_field('videos', json.dumps(videos), content_type='application/json')
+
+            async with retry_client.post(
+                    url=f"{self.URL}/videos",
+                    data={"videos": json.dumps(videos)},
+                    headers=self.headers) as response:
+                results = []
+                status = response.status
+                response_json = await response.json()
+
+                for ii, vr in enumerate(response_json):
+                    results.append(
+                        {
+                            "path": videos[ii]["meta"]["path"],
+                            "uploaded": True,
+                            "id": vr["id"],
+                            "disposition": "ok"
+                            if "disposition" not in vr
+                            else vr["disposition"],
+                        }
+                    )
+                return results
         except JSONDecodeError as je:
             logger.error(
                 "Unusual response from video-service for %s: %s",
                 file_details,
                 response.text,
             )
-        except requests.exceptions.HTTPError as e:
+        except aiohttp.ClientError as e:
             logger.error(
-                "Failing uploading videos %s with HTTP error code %s",
-                file_details,
-                e.response.status_code,
+                f"Failed uploading videos {file_details} due to client error: {e}",
             )
             raise e
-        except requests.exceptions.RequestException as e:
+        except aiohttp.http.HttpProcessingError as e:
             logger.error(
-                "Failing uploading videos %s with exception %s", file_details, e
+                f"Failed uploading videos {file_details} with HTTP error code {status}",
+            )
+            raise e
+        except asyncio.TimeoutError as e:
+            logger.error(
+                f"Failed uploading videos {file_details} due to timeout",
+            )
+            raise e
+        except Exception as e:
+            logger.error(
+                f"Failed uploading videos {file_details} due to unknown exception {e}",
             )
             raise e
 

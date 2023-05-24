@@ -135,6 +135,7 @@ class VideoStorageClient:
                 "method": "GET",
                 "url": f"{self.URL}/video/{path}/data",
                 "headers": self.headers,
+                "timeout": 45
             }
             try:
                 response = self.request_session.request(**request)
@@ -221,20 +222,30 @@ class VideoStorageClient:
             )
             raise e
 
-    async def upload_video(self, path, local_cache_directory=None):
+    async def upload_video(self, path: str, local_cache_directory: str = None):
+        response = await self.upload_videos(path=[path], local_cache_directory=local_cache_directory)
+        return response[0]
+
+    async def upload_videos(self, paths: list[str], local_cache_directory: str = None):
         if local_cache_directory is None:
             local_cache_directory = self.CACHE_DIRECTORY
-        full_path = local_cache_directory / path
-        ptype, file_details = parse_path(path)
-        if ptype == "file":
-            file_details["ptype"] = ptype
-            file_details["path"] = full_path
-            file_details["filepath"] = path
-            resp = await self.upload_videos([file_details])
-            return resp[0]
-        return {
-            "error": "invalid path. doesn't match pattern [environment_id]/[camera_id]/[year]/[month]/[day]/[hour]/[min]-[second].mp4"
-        }
+
+        all_results: list[None, dict] = [None] * len(paths)
+        all_file_details: list[dict] = []
+        for ii, path in enumerate(paths):
+            full_path = local_cache_directory / path
+            ptype, file_details = parse_path(path)
+            if ptype == "file":
+                file_details["ptype"] = ptype
+                file_details["path"] = full_path
+                file_details["filepath"] = path
+                all_file_details.append(file_details)
+            else:
+                all_results[ii] = {
+                    "error": f"Invalid path. '{path}' doesn't match pattern [environment_id]/[camera_id]/[year]/[month]/[day]/[hour]/[min]-[second].mp4"
+                }
+
+        return await self._upload_videos(all_file_details)
 
     def prepare_video(self, file_details: Dict) -> (Dict, BytesIO):
         path = file_details["path"]
@@ -265,12 +276,13 @@ class VideoStorageClient:
             open(path, "rb"),  # pylint: disable=R1732
         )
 
-    async def upload_videos(self, file_details: List[Dict]):
+    async def _upload_videos(self, file_details: List[Dict]):
         request = {
             "method": "POST",
             "url": f"{self.URL}/videos",
             "headers": self.headers,
         }
+
         files = []
         videos = []
         for details in file_details:
@@ -282,6 +294,7 @@ class VideoStorageClient:
                 )
             )
             videos.append(meta)
+
         results = []
         request["files"] = files
         request["data"] = {"videos": json.dumps(videos)}
@@ -291,10 +304,10 @@ class VideoStorageClient:
             response = self.request_session.send(r)
             response.raise_for_status()
 
-            for i, vr in enumerate(response.json()):
+            for ii, vr in enumerate(response.json()):
                 results.append(
                     {
-                        "path": videos[i]["meta"]["path"],
+                        "path": videos[ii]["meta"]["path"],
                         "uploaded": True,
                         "id": vr["id"],
                         "disposition": "ok"
@@ -307,8 +320,9 @@ class VideoStorageClient:
             logger.error(
                 "Unusual response from video-service for %s: %s",
                 file_details,
-                response.text,
+                je.msg,
             )
+            raise je
         except requests.exceptions.HTTPError as e:
             logger.error(
                 "Failing uploading videos %s with HTTP error code %s",
@@ -399,7 +413,7 @@ class VideoStorageClient:
                 max_workers=max_workers
             ) as executor:
                 results = executor.map(
-                    self.upload_videos, chunks(files_found, batch_size)
+                    self._upload_videos, chunks(files_found, batch_size)
                 )
                 logger.debug(results)
                 for result in await asyncio.gather(*results):

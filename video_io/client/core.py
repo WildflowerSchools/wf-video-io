@@ -16,7 +16,7 @@ import yaml
 
 import video_io.config
 from video_io.log_retry import LogRetry
-from video_io.client.errors import SyncError
+from video_io.client.errors import SyncError, BadVideoError
 from video_io.client.utils import (
     client_token,
     parse_path,
@@ -28,6 +28,8 @@ from video_io.client.utils import (
 
 logger = logging.getLogger(__name__)
 
+
+UPLOAD_FAILED_REASON_BAD_VIDEO = "BAD_VIDEO"
 
 class VideoStorageClient:
     DEFAULT_CONNECTION_POOL_SIZE = 10
@@ -259,7 +261,12 @@ class VideoStorageClient:
 
     def prepare_video(self, file_details: Dict) -> (Dict, BytesIO):
         path = file_details["path"]
-        video_properties = get_video_file_details(path)
+
+        try:
+            video_properties = get_video_file_details(path)
+        except Exception as e:
+            raise BadVideoError(f"Could not ffprobe video file {file_details['path']} - {e}")
+
         if file_details["ptype"] == "file":
             ts = f"{file_details['year']}-{file_details['month']}-{file_details['day']}T{file_details['hour']}:{file_details['file'][0:2]}:{file_details['file'][3:5]}.0000"
             meta = {
@@ -295,8 +302,22 @@ class VideoStorageClient:
 
         files = []
         videos = []
+        results = []
         for details in file_details:
-            meta, fileio = self.prepare_video(details)
+            try:
+                meta, fileio = self.prepare_video(details)
+            except BadVideoError:
+                results.append(
+                    {
+                        "id": None,
+                        "path": details['filepath'],
+                        "uploaded": False,
+                        "upload_failed_reason": UPLOAD_FAILED_REASON_BAD_VIDEO,
+                        "disposition": None
+                    }
+                )
+                continue
+
             files.append(
                 (
                     "files",
@@ -305,7 +326,6 @@ class VideoStorageClient:
             )
             videos.append(meta)
 
-        results = []
         request["files"] = files
         request["data"] = {"videos": json.dumps(videos)}
         try:
@@ -319,6 +339,7 @@ class VideoStorageClient:
                     {
                         "path": videos[ii]["meta"]["path"],
                         "uploaded": True,
+                        "upload_failed_reason": None,
                         "id": vr["id"],
                         "disposition": "ok"
                         if "disposition" not in vr

@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 UPLOAD_FAILED_REASON_BAD_VIDEO = "BAD_VIDEO"
+UPLOAD_FAILED_REASON_BAD_PATH_TO_VIDEO = "BAD_PATH_TO_VIDEO"
 
 class VideoStorageClient:
     DEFAULT_CONNECTION_POOL_SIZE = 10
@@ -242,8 +243,8 @@ class VideoStorageClient:
         if local_cache_directory is None:
             local_cache_directory = self.CACHE_DIRECTORY
 
-        all_results: list[None, dict] = [None] * len(paths)
-        all_file_details: list[dict] = []
+        bad_file_results: List[dict] = []
+        all_file_details: List[dict] = []
         for ii, path in enumerate(paths):
             full_path = local_cache_directory / path
             ptype, file_details = parse_path(path)
@@ -253,11 +254,19 @@ class VideoStorageClient:
                 file_details["filepath"] = path
                 all_file_details.append(file_details)
             else:
-                all_results[ii] = {
-                    "error": f"Invalid path. '{path}' doesn't match pattern [environment_id]/[camera_id]/[year]/[month]/[day]/[hour]/[min]-[second].mp4"
-                }
+                bad_file_results.append({
+                    "id": None,
+                    "path": path,
+                    "uploaded": False,
+                    "upload_failed_reason": UPLOAD_FAILED_REASON_BAD_PATH_TO_VIDEO,
+                    "upload_failed_error": f"Invalid path. '{path}' doesn't match pattern [environment_id]/[camera_id]/[year]/[month]/[day]/[hour]/[min]-[second].mp4",
+                    "disposition": None
+                })
 
-        return await self._upload_videos(all_file_details)
+        upload_results = []
+        if len(all_file_details) > 0:
+            upload_results = await self._upload_videos(all_file_details)
+        return [*upload_results, *bad_file_results]
 
     def prepare_video(self, file_details: Dict) -> (Dict, BytesIO):
         path = file_details["path"]
@@ -306,13 +315,14 @@ class VideoStorageClient:
         for details in file_details:
             try:
                 meta, fileio = self.prepare_video(details)
-            except BadVideoError:
+            except BadVideoError as e:
                 results.append(
                     {
                         "id": None,
                         "path": details['filepath'],
                         "uploaded": False,
                         "upload_failed_reason": UPLOAD_FAILED_REASON_BAD_VIDEO,
+                        "upload_failed_error": str(e),
                         "disposition": None
                     }
                 )
@@ -340,6 +350,7 @@ class VideoStorageClient:
                         "path": videos[ii]["meta"]["path"],
                         "uploaded": True,
                         "upload_failed_reason": None,
+                        "upload_failed_error": None,
                         "id": vr["id"],
                         "disposition": "ok"
                         if "disposition" not in vr

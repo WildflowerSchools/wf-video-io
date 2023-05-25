@@ -11,6 +11,7 @@ from typing import List, Dict
 from cachetools import TTLCache
 import requests
 from requests.adapters import HTTPAdapter
+from typing import Optional
 import yaml
 
 import video_io.config
@@ -29,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 class VideoStorageClient:
+    DEFAULT_CONNECTION_POOL_SIZE = 10
+
     def __init__(
         self,
         token=None,
@@ -38,6 +41,7 @@ class VideoStorageClient:
         audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
         client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
         client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
+        connection_pool_size: Optional[int] = None
     ):
         self.CACHE_DIRECTORY = cache_directory
         self.URL = url
@@ -53,17 +57,23 @@ class VideoStorageClient:
         if token is not None:
             self.tokens["access_token"] = token
 
-        self.request_session = self.init_request_session()
+        self.request_session = self.init_request_session(connection_pool_size=connection_pool_size)
 
     @staticmethod
-    def init_request_session():
+    def init_request_session(connection_pool_size=None):
         retry_strategy = LogRetry(
             total=6,
             status_forcelist=[429, 500, 502, 503, 504],
             method_whitelist=["HEAD", "GET", "OPTIONS", "POST"],
             backoff_factor=0.5,
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
+        _connection_pool_size = connection_pool_size
+        if _connection_pool_size is None:
+            _connection_pool_size = VideoStorageClient.DEFAULT_CONNECTION_POOL_SIZE
+
+        adapter = HTTPAdapter(max_retries=retry_strategy,
+                              pool_connections=_connection_pool_size,
+                              pool_maxsize=_connection_pool_size)
         request_session = requests.Session()
         request_session.mount("https://", adapter)
         request_session.mount("http://", adapter)
@@ -223,10 +233,10 @@ class VideoStorageClient:
             raise e
 
     async def upload_video(self, path: str, local_cache_directory: str = None):
-        response = await self.upload_videos(path=[path], local_cache_directory=local_cache_directory)
+        response = await self.upload_videos(paths=[path], local_cache_directory=local_cache_directory)
         return response[0]
 
-    async def upload_videos(self, paths: list[str], local_cache_directory: str = None):
+    async def upload_videos(self, paths: List[str], local_cache_directory: str = None):
         if local_cache_directory is None:
             local_cache_directory = self.CACHE_DIRECTORY
 

@@ -307,7 +307,6 @@ class VideoStorageClient:
             "method": "POST",
             "url": f"{self.URL}/videos",
             "headers": self.headers,
-            "timeout": 45,
         }
 
         files = []
@@ -342,7 +341,7 @@ class VideoStorageClient:
         try:
             request = requests.Request(**request)
             r = request.prepare()
-            response = self.request_session.send(r)
+            response = self.request_session.send(r, timeout=45)
             response.raise_for_status()
 
             for ii, vr in enumerate(response.json()):
@@ -384,12 +383,11 @@ class VideoStorageClient:
             "method": "POST",
             "url": f"{self.URL}/videos/check",
             "headers": self.headers,
-            "json": paths,
-            "timeout": 45,
+            "json": paths
         }
         try:
             r = requests.Request(**request).prepare()
-            response = self.request_session.send(r)
+            response = self.request_session.send(r, timeout=45)
             try:
                 return response.json()
             except Exception:

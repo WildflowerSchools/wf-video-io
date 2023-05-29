@@ -307,6 +307,7 @@ class VideoStorageClient:
             "method": "POST",
             "url": f"{self.URL}/videos",
             "headers": self.headers,
+            "timeout": 45,
         }
 
         files = []
@@ -384,6 +385,7 @@ class VideoStorageClient:
             "url": f"{self.URL}/videos/check",
             "headers": self.headers,
             "json": paths,
+            "timeout": 45,
         }
         try:
             r = requests.Request(**request).prepare()

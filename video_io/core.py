@@ -46,6 +46,7 @@ def fetch_videos(
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
+    video_client: video_io.client.VideoStorageClient = None,
 ):
     """
     Downloads videos that match search parameters and returns their metadata.
@@ -79,6 +80,7 @@ def fetch_videos(
         video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
         video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
         video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
+        video_client (VideoStorageClient): Reusable video client
 
     Returns:
         (list of dict): Metadata for videos with local path information appended
@@ -107,6 +109,7 @@ def fetch_videos(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
+        video_client=video_client
     )
     logger.info("Downloading video files")
     video_metadata_with_local_paths = download_video_files(
@@ -119,6 +122,7 @@ def fetch_videos(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
+        video_client=video_client
     )
     return video_metadata_with_local_paths
 
@@ -149,6 +153,7 @@ def fetch_images(
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
+    video_client: video_io.client.VideoStorageClient = None,
 ):
     """
     Downloads images that match search parameters and returns their metadata.
@@ -182,6 +187,7 @@ def fetch_images(
         video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
         video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
         video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
+        video_client (VideoStorageClient): Reusable video client
 
     Returns:
         (list of dict): Metadata for images with local path information appended
@@ -208,6 +214,7 @@ def fetch_images(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
+        video_client=video_client,
     )
     logger.info("Downloading image files")
     image_metadata_with_local_paths = download_image_files(
@@ -222,6 +229,7 @@ def fetch_images(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
+        video_client=video_client,
     )
     return image_metadata_with_local_paths
 
@@ -249,6 +257,7 @@ def fetch_video_metadata(
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
+    video_client: video_io.client.VideoStorageClient = None,
 ):
     """
     Searches Honeycomb for videos that match specified search parameters and
@@ -291,6 +300,7 @@ def fetch_video_metadata(
         video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
         video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
         video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
+        video_client (VideoStorageClient): Reusable video client
 
     Returns:
         (list of dict): Metadata for videos that match search parameters
@@ -318,6 +328,7 @@ def fetch_video_metadata(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
+        video_client=video_client
     )
     logger.info("Parsing %s returned video metadata", len(video_metadata_raw))
     video_metadata = list()
@@ -334,7 +345,7 @@ def fetch_video_metadata(
                 "device_id": meta.get("camera_id"),
                 "path": meta.get("path"),
                 "duration_seconds": meta.get("duration_seconds"),
-                "fps": meta.get("fps"),
+                "fps": 10,#meta.get("fps"),
                 "frame_offsets": meta.get("frame_offsets"),
             }
         )
@@ -364,6 +375,7 @@ def fetch_video_metadata_raw(
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
+    video_client: video_io.client.VideoStorageClient = None
 ):
     if (start is not None or end is not None) and video_timestamps is not None:
         raise ValueError("Cannot specify start/end and list of video timestamps")
@@ -462,6 +474,7 @@ def fetch_video_metadata_raw(
             video_storage_audience=video_storage_audience,
             video_storage_client_id=video_storage_client_id,
             video_storage_client_secret=video_storage_client_secret,
+            video_client=video_client
         )
     )
     return video_metadata_raw
@@ -478,15 +491,18 @@ async def _fetch_video_metadata(
     video_storage_audience,
     video_storage_client_id,
     video_storage_client_secret,
+    video_client: video_io.client.VideoStorageClient = None
 ):
-    video_client = video_io.client.VideoStorageClient(
-        token=None,
-        url=video_storage_url,
-        auth_domain=video_storage_auth_domain,
-        audience=video_storage_audience,
-        client_id=video_storage_client_id,
-        client_secret=video_storage_client_secret,
-    )
+    if video_client is None:
+        video_client = video_io.client.VideoStorageClient(
+            token=None,
+            url=video_storage_url,
+            auth_domain=video_storage_auth_domain,
+            audience=video_storage_audience,
+            client_id=video_storage_client_id,
+            client_secret=video_storage_client_secret,
+        )
+
     result = []
     if video_timestamps_utc is None:
         if camera_device_ids is None:
@@ -559,6 +575,7 @@ def download_video_files(
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
     overwrite: bool = False,
+    video_client: video_io.client.VideoStorageClient = None
 ):
     """
     Downloads videos from video service to local directory tree and returns metadata with
@@ -587,6 +604,7 @@ def download_video_files(
         video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
         video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
         overwrite (bool): If set to true, any cached video snippets will be overwritten
+        video_client (VideoStorageClient): Reusable video client
 
     Returns:
         (list of dict): Metadata for videos with local path information appended
@@ -606,6 +624,7 @@ def download_video_files(
             video_storage_client_id=video_storage_client_id,
             video_storage_client_secret=video_storage_client_secret,
             overwrite=overwrite,
+            video_client=video_client
         )
     )
     return video_metadata
@@ -620,16 +639,18 @@ async def _download_video_files(
     video_storage_audience,
     video_storage_client_id,
     video_storage_client_secret,
+    video_client: video_io.client.VideoStorageClient = None,
     overwrite: bool = False,
 ):
-    video_client = video_io.client.VideoStorageClient(
-        token=None,
-        url=video_storage_url,
-        auth_domain=video_storage_auth_domain,
-        audience=video_storage_audience,
-        client_id=video_storage_client_id,
-        client_secret=video_storage_client_secret,
-    )
+    if video_client is None:
+        video_client = video_io.client.VideoStorageClient(
+            token=None,
+            url=video_storage_url,
+            auth_domain=video_storage_auth_domain,
+            audience=video_storage_audience,
+            client_id=video_storage_client_id,
+            client_secret=video_storage_client_secret,
+        )
     futures = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as e:
         for video_metadatum in video_metadata:
@@ -670,6 +691,7 @@ def fetch_image_metadata(
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
+    video_client: video_io.client.VideoStorageClient = None,
 ):
     """
     Searches Honeycomb for videos containing images that match specified search
@@ -708,6 +730,7 @@ def fetch_image_metadata(
         video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
         video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
         video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
+        video_client (VideoStorageClient): Reusable video client
 
     Returns:
         (list of dict): Metadata for images that match search parameters
@@ -749,6 +772,7 @@ def fetch_image_metadata(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
+        video_client=video_client,
     )
     image_metadata = []
     for video in video_metadata:
@@ -769,6 +793,7 @@ def download_image_files(
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
+    video_client: video_io.client.VideoStorageClient = None
 ):
     """
     Downloads videos from video service to local directory tree, extract images,
@@ -800,6 +825,7 @@ def download_image_files(
         video_storage_audience (str): Auth0 audience for video service (default is value of VIDEO_STORAGE_AUDIENCE or API_AUDIENCE environment variable)
         video_storage_client_id (str): Auth0 client ID for video service (default is value of VIDEO_STORAGE_CLIENT_ID or AUTH0_CLIENT_ID environment variable)
         video_storage_client_secret (str): Auth0 client secret for video service (default is value of VIDEO_STORAGE_CLIENT_SECRET or AUTH0_CLIENT_SECRET environment variable)
+        video_client (VideoStorageClient): Reusable video client
 
     Returns:
         (list of dict): Metadata for images with local path information appended
@@ -814,6 +840,7 @@ def download_image_files(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
+        video_client=video_client,
     )
     image_metadata_with_local_paths = []
     for image in image_metadata_with_local_video_paths:
@@ -909,6 +936,7 @@ def fetch_concatenated_video(
     video_snippet_directory: str = None,
     overwrite_video_snippets: bool = False,
     overwrite_concatenated_video: bool = False,
+    video_client: video_io.client.VideoStorageClient = None
 ) -> Optional[pd.DataFrame]:
     """
     Create concatenated video files for each camera in a particular environment given a provided start and end time.
@@ -926,6 +954,7 @@ def fetch_concatenated_video(
         video_snippet_directory (str): Directory to store video snippets. If no directory is provided, videos will be downloaded to the operating systems temp directory and destroyed once the function finishes
         overwrite_video_snippets (bool): If set, any cached video snippets will be overwritten
         overwrite_concatenated_video (bool): If set, any previously generated concatenated video will be overwritten
+        video_client (VideoStorageClient): Reusable video client
 
     Returns:
         (dataframe): Dataframe object include "environment_id", "camera_assignment_id", "camera_device_id", and the concatenated video files' "file_path"
@@ -938,6 +967,7 @@ def fetch_concatenated_video(
         end=end,
         environment_name=environment_name,
         camera_names=camera_names,
+        video_client=video_client,
     )
     if video_metadata is None or len(video_metadata) == 0:
         logger.warning(
@@ -957,6 +987,7 @@ def fetch_concatenated_video(
             local_video_directory=video_snippet_storage_dir,
             max_workers=workers,
             overwrite=overwrite_video_snippets,
+            video_client=video_client
         )
 
         concatenated_video_output = concat_videos(

@@ -1,10 +1,11 @@
 import re
 
-import ffmpeg
 from tenacity import retry, wait_random, stop_after_attempt
 from auth0.v3.authentication import GetToken
 from cachetools.func import ttl_cache
 import jmespath
+
+import video_io.utils
 
 
 @ttl_cache(ttl=60 * 60 * 4)
@@ -29,7 +30,7 @@ def client_token(
 def get_video_file_details(path):
     # check for video file if it exists load that and return its contents.
     # if not then run ffprobe and return a new meta document
-    return ffmpeg.probe(path)
+    video_io.utils.get_video_file_details(path)
 
 
 CACHE_PATH_FILE = re.compile(

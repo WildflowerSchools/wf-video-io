@@ -7,13 +7,12 @@ from json.decoder import JSONDecodeError
 import logging
 import os
 from pathlib import Path
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 
 from cachetools import TTLCache
 import requests
 from requests.adapters import HTTPAdapter
 import tenacity
-from typing import Optional
 import yaml
 
 import video_io.config
@@ -35,6 +34,7 @@ logger = logging.getLogger(__name__)
 UPLOAD_FAILED_REASON_BAD_VIDEO = "BAD_VIDEO"
 UPLOAD_FAILED_REASON_BAD_PATH_TO_VIDEO = "BAD_PATH_TO_VIDEO"
 
+
 class VideoStorageClient:
     DEFAULT_CONNECTION_POOL_SIZE = 10
 
@@ -47,7 +47,7 @@ class VideoStorageClient:
         audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
         client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
         client_secret=video_io.config.HONEYCOMB_CLIENT_SECRET,
-        connection_pool_size: Optional[int] = None
+        connection_pool_size: Optional[int] = None,
     ):
         self.CACHE_DIRECTORY = cache_directory
         self.URL = url
@@ -63,7 +63,9 @@ class VideoStorageClient:
         if token is not None:
             self.tokens["access_token"] = token
 
-        self.request_session = self.init_request_session(connection_pool_size=connection_pool_size)
+        self.request_session = self.init_request_session(
+            connection_pool_size=connection_pool_size
+        )
 
     @staticmethod
     def init_request_session(connection_pool_size=None):
@@ -77,9 +79,11 @@ class VideoStorageClient:
         if _connection_pool_size is None:
             _connection_pool_size = VideoStorageClient.DEFAULT_CONNECTION_POOL_SIZE
 
-        adapter = HTTPAdapter(max_retries=retry_strategy,
-                              pool_connections=_connection_pool_size,
-                              pool_maxsize=_connection_pool_size)
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=_connection_pool_size,
+            pool_maxsize=_connection_pool_size,
+        )
         request_session = requests.Session()
         request_session.mount("https://", adapter)
         request_session.mount("http://", adapter)
@@ -126,7 +130,7 @@ class VideoStorageClient:
         start_date: datetime,
         end_date: datetime,
         camera_id: str = None,
-        destination: Union[Path, str] = None
+        destination: Union[Path, str] = None,
     ):
         if destination is None:
             destination = self.CACHE_DIRECTORY
@@ -163,7 +167,9 @@ class VideoStorageClient:
             try:
                 get_video_file_details(p.absolute())
             except Exception as e:
-                logger.error(f"Could not ffprobe video file {p.absolute()} - {e}. Removing file and attempting to re-download")
+                logger.error(
+                    f"Could not ffprobe video file {p.absolute()} - {e}. Removing file and attempting to re-download"
+                )
                 os.remove(p.absolute())
 
         if not p.is_file() or overwrite:
@@ -172,7 +178,7 @@ class VideoStorageClient:
                 "method": "GET",
                 "url": f"{self.URL}/video/{path}/data",
                 "headers": self.headers,
-                "timeout": 45
+                "timeout": 45,
             }
             try:
                 response = self.request_session.request(**request)
@@ -205,7 +211,7 @@ class VideoStorageClient:
         end_date: datetime,
         camera_id: str = None,
         skip: int = 0,
-        limit: int = 1000
+        limit: int = 1000,
     ):
         current_skip = skip
         while True:
@@ -229,13 +235,7 @@ class VideoStorageClient:
         retry=tenacity.retry_if_exception_type(requests.exceptions.RequestException),
     )
     async def get_videos_metadata(
-            self,
-            environment_id,
-            start_date,
-            end_date,
-            camera_id=None,
-            skip=0,
-            limit=1000
+        self, environment_id, start_date, end_date, camera_id=None, skip=0, limit=1000
     ):
         request = {
             "method": "GET",
@@ -277,7 +277,9 @@ class VideoStorageClient:
             raise e
 
     async def upload_video(self, path: str, local_cache_directory: str = None):
-        response = await self.upload_videos(paths=[path], local_cache_directory=local_cache_directory)
+        response = await self.upload_videos(
+            paths=[path], local_cache_directory=local_cache_directory
+        )
         return response[0]
 
     async def upload_videos(self, paths: List[str], local_cache_directory: str = None):
@@ -286,7 +288,7 @@ class VideoStorageClient:
 
         bad_file_results: List[dict] = []
         all_file_details: List[dict] = []
-        for ii, path in enumerate(paths):
+        for path in paths:
             full_path = local_cache_directory / path
             ptype, file_details = parse_path(path)
             if ptype == "file":
@@ -295,14 +297,16 @@ class VideoStorageClient:
                 file_details["filepath"] = path
                 all_file_details.append(file_details)
             else:
-                bad_file_results.append({
-                    "id": None,
-                    "path": path,
-                    "uploaded": False,
-                    "upload_failed_reason": UPLOAD_FAILED_REASON_BAD_PATH_TO_VIDEO,
-                    "upload_failed_error": f"Invalid path. '{path}' doesn't match pattern [environment_id]/[camera_id]/[year]/[month]/[day]/[hour]/[min]-[second].mp4",
-                    "disposition": None
-                })
+                bad_file_results.append(
+                    {
+                        "id": None,
+                        "path": path,
+                        "uploaded": False,
+                        "upload_failed_reason": UPLOAD_FAILED_REASON_BAD_PATH_TO_VIDEO,
+                        "upload_failed_error": f"Invalid path. '{path}' doesn't match pattern [environment_id]/[camera_id]/[year]/[month]/[day]/[hour]/[min]-[second].mp4",
+                        "disposition": None,
+                    }
+                )
 
         upload_results = []
         if len(all_file_details) > 0:
@@ -315,7 +319,9 @@ class VideoStorageClient:
         try:
             video_properties = get_video_file_details(path)
         except Exception as e:
-            raise BadVideoError(f"Could not ffprobe video file {file_details['path']} - {e}")
+            raise BadVideoError(
+                f"Could not ffprobe video file {file_details['path']} - {e}"
+            ) from e
 
         if file_details["ptype"] == "file":
             ts = f"{file_details['year']}-{file_details['month']}-{file_details['day']}T{file_details['hour']}:{file_details['file'][0:2]}:{file_details['file'][3:5]}.0000"
@@ -365,11 +371,11 @@ class VideoStorageClient:
                 results.append(
                     {
                         "id": None,
-                        "path": details['filepath'],
+                        "path": details["filepath"],
                         "uploaded": False,
                         "upload_failed_reason": UPLOAD_FAILED_REASON_BAD_VIDEO,
                         "upload_failed_error": str(e),
-                        "disposition": None
+                        "disposition": None,
                     }
                 )
                 continue
@@ -429,7 +435,7 @@ class VideoStorageClient:
             "method": "POST",
             "url": f"{self.URL}/videos/check",
             "headers": self.headers,
-            "json": paths
+            "json": paths,
         }
         try:
             r = requests.Request(**request).prepare()
@@ -464,7 +470,6 @@ class VideoStorageClient:
         local_cache_directory = Path(local_cache_directory)
         strpath = str(path)
         t, details = parse_path(strpath[:-1] if strpath[-1] == "/" else strpath)
-        logging.info("ptype is %s", t)
         if details:
             if t in ("file", "fileV2"):
                 raise SyncError(
@@ -496,7 +501,7 @@ class VideoStorageClient:
             details["files_found"] = len(files_found)
             details["files_uploaded"] = 0
             details["details"] = []
-            logger.debug("found %s files to be uploaded", len(files_found))
+            logger.debug(f"found {len(files_found)} files to be uploaded")
             with concurrent.futures.ThreadPoolExecutor(
                 max_workers=max_workers
             ) as executor:

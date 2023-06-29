@@ -58,7 +58,9 @@ def concat_videos(
                 try:
                     get_video_file_details(video_output_path)
                 except Exception as e:
-                    logger.error(f"Could not ffprobe video file {video_output_path} - {e}. Removing file and attempting to rebuild.")
+                    logger.error(
+                        f"Could not ffprobe video file {video_output_path} - {e}. Removing file and attempting to rebuild."
+                    )
                     os.remove(video_output_path)
 
             if not os.path.exists(video_output_path) or overwrite:
@@ -117,7 +119,9 @@ def concat_videos(
                             c="copy",
                             r=video_snippet_fps,
                             vsync=0,
-                        ).overwrite_output().global_args('-hide_banner', '-loglevel', 'warning').run()
+                        ).overwrite_output().global_args(
+                            "-hide_banner", "-loglevel", "warning"
+                        ).run()
                     except Exception as e:
                         logger.error(e)
                         raise e
@@ -162,9 +166,7 @@ def trim_video(
         (boolean): True if video could be trimmed and output to the given output_path
     """
     logging.info(
-        "Trimming video '{}' to a slice that starts at the {} second mark to the {} second mark".format(
-            input_path, start_trim, end_trim
-        )
+        f"Trimming video '{input_path}' to a slice that starts at the {start_trim} second mark to the {end_trim} second mark"
     )
 
     if not os.path.exists(input_path):
@@ -184,17 +186,16 @@ def trim_video(
             tmp_file = tempfile.NamedTemporaryFile(suffix=".mp4")
             ffmpeg_output_path = tmp_file.name
 
-        duration_seconds = end_trim - start_trim
         ffmpeg.input(input_path).output(
             ffmpeg_output_path,
             r=fps,
             vf=f"trim=start_frame={int(start_trim * video_reader.fps())}:end_frame={int(end_trim * video_reader.fps())}",
-        ).overwrite_output().global_args('-hide_banner', '-loglevel', 'warning').run()
+        ).overwrite_output().global_args("-hide_banner", "-loglevel", "warning").run()
 
         if should_overwrite_input:
             shutil.copy(ffmpeg_output_path, input_path)
     except ffmpeg._run.Error as e:
-        logging.error("Failed trimming video {}".format(input_path))
+        logging.error(f"Failed trimming video {input_path}")
         logging.error(e)
 
         # Cleanup
@@ -252,7 +253,7 @@ def generate_video_mosaic(
 
         row_width = math.ceil(math.sqrt(n))
         shape = []
-        for ii in range(row_width, n + 1, row_width):
+        for _ in range(row_width, n + 1, row_width):
             shape.append(row_width)
 
         if n > sum(shape):
@@ -279,9 +280,10 @@ def generate_video_mosaic(
 
     ffmpeg.output(
         vout, _output_path, pix_fmt="yuv420p", vcodec="libx264"
-    ).overwrite_output().global_args('-hide_banner', '-loglevel', 'warning').run()
+    ).overwrite_output().global_args("-hide_banner", "-loglevel", "warning").run()
 
     return _output_path
+
 
 def get_video_file_details(path):
     # check for video file if it exists load that and return its contents.

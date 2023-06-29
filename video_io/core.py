@@ -109,7 +109,7 @@ def fetch_videos(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
-        video_client=video_client
+        video_client=video_client,
     )
     logger.info("Downloading video files")
     video_metadata_with_local_paths = download_video_files(
@@ -122,7 +122,7 @@ def fetch_videos(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
-        video_client=video_client
+        video_client=video_client,
     )
     return video_metadata_with_local_paths
 
@@ -328,10 +328,10 @@ def fetch_video_metadata(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
-        video_client=video_client
+        video_client=video_client,
     )
     logger.info("Parsing %s returned video metadata", len(video_metadata_raw))
-    video_metadata = list()
+    video_metadata = []
     for datum in video_metadata_raw:
         meta = datum.get("meta", {})
         video_metadata.append(
@@ -345,7 +345,7 @@ def fetch_video_metadata(
                 "device_id": meta.get("camera_id"),
                 "path": meta.get("path"),
                 "duration_seconds": meta.get("duration_seconds"),
-                "fps": 10,#meta.get("fps"),
+                "fps": 10,  # meta.get("fps"),
                 "frame_offsets": meta.get("frame_offsets"),
             }
         )
@@ -375,7 +375,7 @@ def fetch_video_metadata_raw(
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
-    video_client: video_io.client.VideoStorageClient = None
+    video_client: video_io.client.VideoStorageClient = None,
 ):
     if (start is not None or end is not None) and video_timestamps is not None:
         raise ValueError("Cannot specify start/end and list of video timestamps")
@@ -474,7 +474,7 @@ def fetch_video_metadata_raw(
             video_storage_audience=video_storage_audience,
             video_storage_client_id=video_storage_client_id,
             video_storage_client_secret=video_storage_client_secret,
-            video_client=video_client
+            video_client=video_client,
         )
     )
     return video_metadata_raw
@@ -491,7 +491,7 @@ async def _fetch_video_metadata(
     video_storage_audience,
     video_storage_client_id,
     video_storage_client_secret,
-    video_client: video_io.client.VideoStorageClient = None
+    video_client: video_io.client.VideoStorageClient = None,
 ):
     if video_client is None:
         video_client = video_io.client.VideoStorageClient(
@@ -575,7 +575,7 @@ def download_video_files(
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
     overwrite: bool = False,
-    video_client: video_io.client.VideoStorageClient = None
+    video_client: video_io.client.VideoStorageClient = None,
 ):
     """
     Downloads videos from video service to local directory tree and returns metadata with
@@ -624,7 +624,7 @@ def download_video_files(
             video_storage_client_id=video_storage_client_id,
             video_storage_client_secret=video_storage_client_secret,
             overwrite=overwrite,
-            video_client=video_client
+            video_client=video_client,
         )
     )
     return video_metadata
@@ -793,7 +793,7 @@ def download_image_files(
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
-    video_client: video_io.client.VideoStorageClient = None
+    video_client: video_io.client.VideoStorageClient = None,
 ):
     """
     Downloads videos from video service to local directory tree, extract images,
@@ -936,7 +936,7 @@ def fetch_concatenated_video(
     video_snippet_directory: str = None,
     overwrite_video_snippets: bool = False,
     overwrite_concatenated_video: bool = False,
-    video_client: video_io.client.VideoStorageClient = None
+    video_client: video_io.client.VideoStorageClient = None,
 ) -> Optional[pd.DataFrame]:
     """
     Create concatenated video files for each camera in a particular environment given a provided start and end time.
@@ -987,7 +987,7 @@ def fetch_concatenated_video(
             local_video_directory=video_snippet_storage_dir,
             max_workers=workers,
             overwrite=overwrite_video_snippets,
-            video_client=video_client
+            video_client=video_client,
         )
 
         concatenated_video_output = concat_videos(

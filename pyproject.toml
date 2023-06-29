@@ -1,10 +1,11 @@
 [project]
 name = "wf-video-io"
-dynamic = ["version"]
+#dynamic = ["version"]
+version = "3.4.0"
 
 [tool.poetry]
 name = "wf-video-io"
-version = "3.3.5"
+version = "3.4.0"
 description = "Library for working with video files and interacting with the wildflower video-service"
 authors = ["Paul J DeCoursey <paul@decoursey.net>", "Theodore Quinn <ted.quinn@wildflowerschools.org>"]
 maintainers = ["Paul J DeCoursey <paul@decoursey.net>", "Theodore Quinn <ted.quinn@wildflowerschools.org>", "Benjamin Jaffe-Talberg <ben.talberg@gmail.com>"]

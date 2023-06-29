@@ -54,6 +54,13 @@ def concat_videos(
         ):
             video_output_path = f"{output_directory}/{environment_id}_{camera_device_id}_{start.strftime('%m%d%YT%H%M%S%f%z')}_{end.strftime('%m%d%YT%H%M%S%f%z')}.mp4"
 
+            if os.path.exists(video_output_path):
+                try:
+                    get_video_file_details(video_output_path)
+                except Exception as e:
+                    logger.error(f"Could not ffprobe video file {video_output_path} - {e}. Removing file and attempting to rebuild.")
+                    os.remove(video_output_path)
+
             if not os.path.exists(video_output_path) or overwrite:
                 # tmp_concat_demuxer_file is a temp file containing a list of video files to concatenate. This file
                 # gets input into ffmpeg.
@@ -99,17 +106,21 @@ def concat_videos(
                         )
                         tmp_concat_demuxer_file.flush()
 
-                    ffmpeg.input(
-                        f"file:{tmp_concat_demuxer_file.name}",
-                        format="concat",
-                        safe=0,
-                        r=video_snippet_fps,
-                    ).output(
-                        f"file:{video_output_path}",
-                        c="copy",
-                        r=video_snippet_fps,
-                        vsync=0,
-                    ).overwrite_output().run()
+                    try:
+                        ffmpeg.input(
+                            f"file:{tmp_concat_demuxer_file.name}",
+                            format="concat",
+                            safe=0,
+                            r=video_snippet_fps,
+                        ).output(
+                            f"file:{video_output_path}",
+                            c="copy",
+                            r=video_snippet_fps,
+                            vsync=0,
+                        ).overwrite_output().global_args('-hide_banner', '-loglevel', 'warning').run()
+                    except Exception as e:
+                        logger.error(e)
+                        raise e
 
             concatenated_video_output.append(
                 {
@@ -151,7 +162,7 @@ def trim_video(
         (boolean): True if video could be trimmed and output to the given output_path
     """
     logging.info(
-        "Trimming video '{}' from {} seconds to {} seconds".format(
+        "Trimming video '{}' to a slice that starts at the {} second mark to the {} second mark".format(
             input_path, start_trim, end_trim
         )
     )
@@ -161,8 +172,8 @@ def trim_video(
         logger.error(err)
         raise (FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), err))
 
+    video_reader = VideoReader(input_path)
     if end_trim is None:
-        video_reader = VideoReader(input_path)
         end_trim = video_reader.duration()
 
     tmp_file = None
@@ -174,9 +185,11 @@ def trim_video(
             ffmpeg_output_path = tmp_file.name
 
         duration_seconds = end_trim - start_trim
-        ffmpeg.input(input_path, ss=start_trim, to=end_trim).output(
-            ffmpeg_output_path, r=fps, vframes=int(duration_seconds * fps)
-        ).overwrite_output().run()
+        ffmpeg.input(input_path).output(
+            ffmpeg_output_path,
+            r=fps,
+            vf=f"trim=start_frame={int(start_trim * video_reader.fps())}:end_frame={int(end_trim * video_reader.fps())}",
+        ).overwrite_output().global_args('-hide_banner', '-loglevel', 'warning').run()
 
         if should_overwrite_input:
             shutil.copy(ffmpeg_output_path, input_path)
@@ -266,6 +279,11 @@ def generate_video_mosaic(
 
     ffmpeg.output(
         vout, _output_path, pix_fmt="yuv420p", vcodec="libx264"
-    ).overwrite_output().run()
+    ).overwrite_output().global_args('-hide_banner', '-loglevel', 'warning').run()
 
     return _output_path
+
+def get_video_file_details(path):
+    # check for video file if it exists load that and return its contents.
+    # if not then run ffprobe and return a new meta document
+    return ffmpeg.probe(path)

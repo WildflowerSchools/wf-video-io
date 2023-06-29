@@ -1,22 +1,25 @@
 import asyncio
 import concurrent.futures
+from datetime import datetime
 from io import BytesIO
 import json
 from json.decoder import JSONDecodeError
 import logging
 import os
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Union
 
 from cachetools import TTLCache
 import requests
 from requests.adapters import HTTPAdapter
+import tenacity
 from typing import Optional
 import yaml
 
 import video_io.config
 from video_io.log_retry import LogRetry
-from video_io.client.errors import SyncError, BadVideoError
+from video_io.client.errors import SyncError
+from video_io.errors import BadVideoError
 from video_io.client.utils import (
     client_token,
     parse_path,
@@ -118,7 +121,12 @@ class VideoStorageClient:
         self._headers = header_dict
 
     async def get_videos(
-        self, environment_id, start_date, end_date, camera_id=None, destination=None
+        self,
+        environment_id: str,
+        start_date: datetime,
+        end_date: datetime,
+        camera_id: str = None,
+        destination: Union[Path, str] = None
     ):
         if destination is None:
             destination = self.CACHE_DIRECTORY
@@ -126,7 +134,10 @@ class VideoStorageClient:
             destination = Path(destination)
         destination.mkdir(parents=True, exist_ok=True)
         meta = self.get_videos_metadata_paginated(
-            environment_id, start_date, end_date, camera_id
+            environment_id=environment_id,
+            start_date=start_date,
+            end_date=end_date,
+            camera_id=camera_id,
         )
         futures = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as e:
@@ -140,8 +151,21 @@ class VideoStorageClient:
                 futures.append(f)
         list(concurrent.futures.as_completed(futures))
 
+    @tenacity.retry(
+        wait=tenacity.wait_incrementing(start=5, increment=1),
+        stop=tenacity.stop_after_attempt(3),
+        retry=tenacity.retry_if_exception_type(requests.exceptions.RequestException),
+    )
     async def get_video(self, path: str, destination: str, overwrite: bool = False):
         p = Path(destination) / path
+
+        if p.is_file():
+            try:
+                get_video_file_details(p.absolute())
+            except Exception as e:
+                logger.error(f"Could not ffprobe video file {p.absolute()} - {e}. Removing file and attempting to re-download")
+                os.remove(p.absolute())
+
         if not p.is_file() or overwrite:
             logger.info("Downloading video file %s", path)
             request = {
@@ -175,7 +199,13 @@ class VideoStorageClient:
             logger.info("Video file %s already exists", path)
 
     async def get_videos_metadata_paginated(
-        self, environment_id, start_date, end_date, camera_id=None, skip=0, limit=100
+        self,
+        environment_id: str,
+        start_date: datetime,
+        end_date: datetime,
+        camera_id: str = None,
+        skip: int = 0,
+        limit: int = 1000
     ):
         current_skip = skip
         while True:
@@ -193,8 +223,19 @@ class VideoStorageClient:
             if len(page) == 0:
                 break
 
+    @tenacity.retry(
+        wait=tenacity.wait_incrementing(start=5, increment=1),
+        stop=tenacity.stop_after_attempt(3),
+        retry=tenacity.retry_if_exception_type(requests.exceptions.RequestException),
+    )
     async def get_videos_metadata(
-        self, environment_id, start_date, end_date, camera_id=None, skip=0, limit=100
+            self,
+            environment_id,
+            start_date,
+            end_date,
+            camera_id=None,
+            skip=0,
+            limit=1000
     ):
         request = {
             "method": "GET",
@@ -302,6 +343,11 @@ class VideoStorageClient:
             open(path, "rb"),  # pylint: disable=R1732
         )
 
+    @tenacity.retry(
+        wait=tenacity.wait_incrementing(start=5, increment=1),
+        stop=tenacity.stop_after_attempt(3),
+        retry=tenacity.retry_if_exception_type(requests.exceptions.RequestException),
+    )
     async def _upload_videos(self, file_details: List[Dict]):
         request = {
             "method": "POST",

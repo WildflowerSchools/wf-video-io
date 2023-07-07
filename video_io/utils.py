@@ -118,7 +118,8 @@ def concat_videos(
                             f"file:{video_output_path}",
                             c="copy",
                             r=video_snippet_fps,
-                            vsync=0,
+                            fps_mode=0,
+                            video_track_timescale=video_snippet_fps,
                         ).overwrite_output().global_args(
                             "-hide_banner", "-loglevel", "warning"
                         ).run()
@@ -186,10 +187,13 @@ def trim_video(
             tmp_file = tempfile.NamedTemporaryFile(suffix=".mp4")
             ffmpeg_output_path = tmp_file.name
 
-        ffmpeg.input(input_path).output(
+        ffmpeg.input(
+            input_path,
+            r=fps,
+        ).output(
             ffmpeg_output_path,
             r=fps,
-            vf=f"trim=start_frame={int(start_trim * video_reader.fps())}:end_frame={int(end_trim * video_reader.fps())}",
+            vf=f"trim=start_frame={int(start_trim * video_reader.fps())}:end_frame={int(end_trim * video_reader.fps())},setpts=PTS-STARTPTS",
         ).overwrite_output().global_args("-hide_banner", "-loglevel", "warning").run()
 
         if should_overwrite_input:

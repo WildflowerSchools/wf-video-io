@@ -193,7 +193,7 @@ def trim_video(
         ).output(
             ffmpeg_output_path,
             r=fps,
-            vf=f"trim=start_frame={int(start_trim * video_reader.fps())}:end_frame={int(end_trim * video_reader.fps())},setpts=PTS-STARTPTS",
+            vf=f"trim=start_frame={int(start_trim * fps)}:end_frame={int(end_trim * fps)},setpts=PTS-STARTPTS",
         ).overwrite_output().global_args("-hide_banner", "-loglevel", "warning").run()
 
         if should_overwrite_input:

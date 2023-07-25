@@ -428,7 +428,7 @@ def fetch_video_metadata_raw(
         end_utc = end.astimezone(datetime.timezone.utc)
         video_timestamp_min_utc = video_timestamp_min(start_utc)
         video_timestamp_max_utc = video_timestamp_max(end_utc)
-    if environment_name is not None:
+    if environment_id is None and environment_name is not None:
         environment_id = honeycomb_io.fetch_environment_id(
             environment_name=environment_name,
             client=client,
@@ -927,10 +927,11 @@ def video_timestamp_max(end):
 
 
 def fetch_concatenated_video(
-    environment_name: str,
+    environment_id: str,
     start: datetime,
     end: datetime,
     output_directory: str,
+    environment_name: str = None,
     camera_names: Optional[List[str]] = None,
     workers: int = cpu_count() - 1,
     video_snippet_directory: str = None,
@@ -945,6 +946,7 @@ def fetch_concatenated_video(
     to exactly match the provided start and end time.
 
     Args:
+        environment_id (str): Honeycomb environment ID
         environment_name (str): Honeycomb environment name
         start (datetime): Start of time period
         end (datetime): End of time period
@@ -965,6 +967,7 @@ def fetch_concatenated_video(
     video_metadata = fetch_video_metadata(
         start=start,
         end=end,
+        environment_id=environment_id,
         environment_name=environment_name,
         camera_names=camera_names,
         video_client=video_client,

@@ -46,6 +46,7 @@ def fetch_videos(
     video_storage_audience=video_io.config.VIDEO_STORAGE_AUDIENCE,
     video_storage_client_id=video_io.config.VIDEO_STORAGE_CLIENT_ID,
     video_storage_client_secret=video_io.config.VIDEO_STORAGE_CLIENT_SECRET,
+    overwrite=False,
     video_client: video_io.client.VideoStorageClient = None,
 ):
     """
@@ -122,6 +123,7 @@ def fetch_videos(
         video_storage_audience=video_storage_audience,
         video_storage_client_id=video_storage_client_id,
         video_storage_client_secret=video_storage_client_secret,
+        overwrite=overwrite,
         video_client=video_client,
     )
     return video_metadata_with_local_paths
